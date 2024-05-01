@@ -11,7 +11,7 @@ bind <- read.csv('Data/bind_2022.csv') # B. lapidarius bee pathogens
 wind <- read.csv('Data/wind_2022.csv') # other wild bee pathogens
 dens <- read.csv('Data/density.csv') # which site is density high
 hb.ab <- read.csv('Data/hb_abundance2022.csv') # Kathrin's honey bee abundance 
-load('Data/landuse2022.RData') # landuse composition at scales from 100 to 2000 m
+load('Data/radii.RData') # landuse composition at scales from 100 to 2000 m
 load('Data/landscape_metrics2022.RData')
 wind.sp <- read.csv('Data/WIND_species.csv') %>% select(Sample_ID, Species) # updated barcodes for wild bees
 load('Data/abs_pathogen240212.RData') # normalized absolute quantification 
@@ -32,7 +32,7 @@ hind2 <- hind %>% filter(ACTIN < 27) %>% dplyr::select(-ACTIN) %>% ## housekeepi
          abpv = ifelse(!is.na(ABPV) & !is.na(ABPV.SD ), 1, 0),
          sbv = ifelse(!is.na(SBV) & !is.na(SBV.SD ), 1, 0)) %>% 
   dplyr::select(Site, Sample.ID, dwvb, bqcv, abpv, sbv) %>%
-  mutate(Group = 'hb')
+  mutate(Species = 'Apis mellifera', Group = 'hb')
 
 bind2 <- bind %>% filter(ACTIN < 27) %>% dplyr::select(-ACTIN) %>% 
   mutate(dwvb = ifelse(!is.na(DWV.B) & !is.na(DWV.B.SD ), 1, 0),
@@ -40,21 +40,21 @@ bind2 <- bind %>% filter(ACTIN < 27) %>% dplyr::select(-ACTIN) %>%
          abpv = ifelse(!is.na(ABPV) & !is.na(ABPV.SD ), 1, 0),
          sbv = ifelse(!is.na(SBV) & !is.na(SBV.SD ), 1, 0)) %>%
   dplyr::select(Site, Sample.ID, dwvb, bqcv, abpv, sbv) %>%
-  mutate(Group = 'bb')
+  mutate(Species = 'Bombus lapidarius', Group = 'bb')
 
 wind2 <- wind %>% filter(X28S < 27) %>% dplyr::select(-X28S) %>% 
   mutate(dwvb = ifelse(!is.na(DWV.B) & !is.na(DWV.B.SD ), 1, 0),
          bqcv = ifelse(!is.na(BQCV) & !is.na(BQCV.SD ), 1, 0),
          abpv = ifelse(!is.na(ABPV) & !is.na(ABPV.SD ), 1, 0),
          sbv = ifelse(!is.na(SBV) & !is.na(SBV.SD ), 1, 0)) %>%
-  dplyr::select(Site, Sample.ID, dwvb, bqcv, abpv, sbv) %>%
+  dplyr::select(Site, Sample.ID, dwvb, bqcv, abpv, sbv, Species) %>%
   mutate(Group = 'wb')
 
 all2 <- rbind(hind2, bind2, wind2)
 
 data <- all2 %>% rename(Sample = Sample.ID) %>% left_join(q.norm, by = 'Sample') %>% 
-  left_join(land.all %>% filter(radius == '2000m'), by = 'Site') %>%
-  left_join(Het.lm2000 %>% select(Iji, Ennd.Total_flowerstrip, Edge.dens), by = 'Site') %>%
+  left_join(radii[['2000m']], by = 'Site') %>%
+  left_join(Het.lm2000 %>% select(Site, SH, Iji, Ennd.Total_flowerstrip, Edge.dens), by = 'Site')
   
 
                            
