@@ -9,20 +9,24 @@ hind <- read.csv('Data/hind_2022.csv') # honey bee pathogens
 bind <- read.csv('Data/bind_2022.csv') # B. lapidarius bee pathogens
 #pind <- read.csv('Data/pind_2022.csv') # B. pascuorum pathogens - not finished!
 wind <- read.csv('Data/wind_2022.csv') # other wild bee pathogens
+wind.sp <- read.csv('Data/WIND_species.csv') %>% select(Sample_ID, Species) # updated barcodes for wild bees
+load('Data/abs_pathogen240212.RData') # normalized absolute quantification
 dens <- read.csv('Data/density.csv') # which site is density high
 hb.ab <- read.csv('Data/hb_abundance2022.csv') # Kathrin's honey bee abundance 
-load('Data/radii.RData') # landuse composition at scales from 100 to 2000 m
-load('Data/landscape_metrics2022.RData')
-wind.sp <- read.csv('Data/WIND_species.csv') %>% select(Sample_ID, Species) # updated barcodes for wild bees
-load('Data/abs_pathogen240212.RData') # normalized absolute quantification 
+ 
+load('Data/landuse2022.RData') # landuse composition at scales from 200 to 2000 m
+load('Data/landscape_metrics2022.RData') # Shannon index, Edge density, patch edge length, patch ENND, IJI, flower strips ENND at 500, 1000, 1500, and 2000 m radii
+load('Data/fl_cover_extr.RData') # extrapolated flower cover
 
-wind <- wind %>% select(-Species) %>% left_join(wind.sp, by = join_by('Sample.ID' == 'Sample_ID'))
+wind <- wind %>% select(-Species) %>% left_join(wind.sp, by = join_by('Sample.ID' == 'Sample_ID')) # updating the barcodes
 q.norm[is.na(q.norm)] <- 0 # changing undetected Ct to 0
 
 ## current issues:
 # - check absolute quantification for all samples
 # - Shannon from vegan (shp) and Shannon from landscapemetrics (rasters) give different results - recheck the rasters
 # - not sure if I calculated correctly the total flower cover (grassy strips!)
+# - which flower cover estimation run use for pathogen data? currently using an average of 1st and 2nd
+# - sites missing total flowerstrip Ennd - add 2000 m distance?
 
 ## cleaning up the molecular analysis
 
@@ -53,8 +57,10 @@ wind2 <- wind %>% filter(X28S < 27) %>% dplyr::select(-X28S) %>%
 all2 <- rbind(hind2, bind2, wind2)
 
 data <- all2 %>% rename(Sample = Sample.ID) %>% left_join(q.norm, by = 'Sample') %>% 
-  left_join(radii[['2000m']], by = 'Site') %>%
-  left_join(Het.lm2000 %>% select(Site, SH, Iji, Ennd.Total_flowerstrip, Edge.dens), by = 'Site')
-  
-
+  left_join(dens, by = 'Site') %>%
+  left_join(land.all %>% filter(radius == '2000m'), by = 'Site') %>%
+  left_join(Het[['2000m']] %>% select(Site, SH, Iji, Ennd.Total_flowerstrip, Edge.dens), by = 'Site') %>%
+  left_join(flower.extr[['2000m']] %>% filter(Run !=3) %>% group_by(Site, Run) %>% summarise(fl.cv = sum(flower.cover)) %>%
+              group_by(Site) %>% summarise(fl.cv = mean(fl.cv)), by = 'Site') %>%
+  mutate(Density = as.factor(Density))
                            

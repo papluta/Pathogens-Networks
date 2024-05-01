@@ -73,7 +73,8 @@ fl.area2000 <- land2000 %>% pivot_longer(cols = Allotments:Plantation,names_to =
   mutate(flcv.edge = ifelse(is.na(Edge), NA, flcv.edge)) %>% mutate(flcv.area = ifelse(is.na(area), NA, flcv.area))%>%
   mutate(flower.cover = ifelse(is.na(flcv.area), flcv.edge, flcv.area)) %>% drop_na(flower.cover)
 
-save(fl.area500, fl.area1000, fl.area1500, fl.area2000, file = 'Data/fl_cover_extr.RData')
+flower.extr <- list('500m' = fl.area500, '1000m' = fl.area1000, '1500m' = fl.area1500, '2000m' = fl.area2000)
+#save(flower.extr, file = 'Data/fl_cover_extr.RData')
 
 dens <- read_csv('Data/density.csv')
 
