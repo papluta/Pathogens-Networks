@@ -33,10 +33,10 @@ data.wb <- data %>% filter(Group == 'wb') %>%
   filter(Genus != '') %>% filter(Genus != ('Sipha')) %>% filter(Genus != ('Trypoxylon')) %>% filter(Genus != ('Orisarma')) %>% 
   filter(Genus != ('Lindenius')) %>% filter(Genus != ('Oedogonium')) %>% filter(Genus != ('Orasema')) %>% filter(Genus != ('Megalocoleus')) %>% filter(Genus != ('Bombus'))
 
-data.wb %>% group_by(Genus) %>% summarise(n = n()) # 236 Andrena, 55 Lasioglossum
+b <- data.wb %>% group_by(Genus, Species) %>% summarise(S_n = n())  # 236 Andrena, 55 Lasioglossum
 print(data.wb %>% group_by(Site) %>% summarise(n = n()), n = Inf) # Nor 174 only 6 samples, Wm1316 7
 
-
+data.wb %>% filter(Species == 'Andrena nigroolivacea')
 ### AES ###
 # separate models for each virus and bee group
 # default (improper) priors
@@ -118,5 +118,83 @@ dens_plot_hu(AES_dens_models[[3]], effects = 'Ann.fl:Density') # Nor578 is an ou
 dens_plot_mu(AES_dens_models[[1]], effects = 'SNH:Density')
 
 
+library(bipartite)
+ex <- data %>% group_by(Species) %>% summarise(n = n()) %>% filter(n >2)
 
-  
+data1 <- data[c(1:7, 13)] %>% group_by(Density, Species) %>% summarise(dwvb = sum(dwvb), bqcv = sum(bqcv), sbv = sum(sbv), abpv = sum(abpv)) %>%
+  mutate(Density = factor(Density, levels = c('0', '1'))) %>% filter(Species %in% ex$Species)
+
+
+
+net.data <- split(data1, data1$Density)
+net.data[[1]] <- net.data[[1]][-1]
+net.data[[2]] <- net.data[[2]][-1]
+low <- net.data$`0`
+high <- net.data$`1`
+low <- low[-1]
+high <- high[-1]
+low2 <- as.matrix(low)
+high2 <- as.matrix(high)
+rownames(low2) <- net.data[[1]]$Species
+rownames(high2) <- net.data[[2]]$Species
+a <- betalinkr(webs2array(low2, high2), partitioning="commondenom")
+a
+
+low3 <- t(low2)
+plotweb(low2)
+#low <- low %>% mutate(across(everything(), function(x) ifelse(x > 0, 1, 0)))
+
+
+### WORKS
+col <- adjustcolor(c('#7f5454','#6a7f54', '#547f7f', '#6a547f'), alpha = 0.6)
+low$Species <- net.data[[1]]$Species
+g.data.low <- low %>% pivot_longer(cols = dwvb:abpv, names_to = 'Virus', values_to = 'Yes') %>% 
+  mutate(e.col = rep(col, times = 17)) %>% filter(Yes != 0) %>% rename(weight = Yes) %>%
+  #mutate(Species = sub('(.).* ', '. ', Species)) 
+  mutate(Species = sub('Andrena', "A.", Species)) %>% mutate(Species = sub('Apis', "A.", Species)) %>% 
+  mutate(Species = sub('Bombus', "B.", Species)) %>% 
+  mutate(Species = sub('Lasioglossum', "L.", Species)) %>% 
+  mutate(Species = sub('Melitta', "M.", Species)) %>% 
+  mutate(Species = sub('Eucera', "E.", Species)) %>% mutate(Species = sub('Colletes', "C.", Species)) %>%
+  mutate(Virus = recode_factor(as.factor(Virus), 'dwvb' = 'DWV-B', bqcv = 'BQCV', sbv = 'SBV', abpv = 'ABPV'))
+#deg <- low %>% pivot_longer(cols = dwvb:abpv, names_to = 'Virus', values_to = 'Yes') %>% filter(Yes != 0) %>% select(Yes)
+g.data.low <- g.data.low[,c(2,1,3,4)]
+#colrs <- adjustcolor( c("gray50", "tomato", "gold", "yellowgreen"), alpha=.6)
+g <- graph.data.frame(g.data.low, directed = T)
+
+V(g)$type <- bipartite.mapping(g)$type
+V(g)$shape <- ifelse(V(g)$type == TRUE, "circle", "circle")
+V(g)$color <- c('#547f7f', '#7f5454','#6a547f','#6a7f54',  rep('#ecde51', times = 17))
+V(g)$frame.color <- c('#547f7f', '#7f5454','#6a547f','#6a7f54', rep('#ecde51', times = 17))
+V(g)$size <- degree(g)+25
+E(g)$color <- E(g)$e.col
+
+E(g)$width <- E(g)$weight*0.1
+plot(g, layout = layout_in_circle(g), edge.arrow.size = 0.5, vertex.label.color = 'black', vertex.label.cex = 0.8, vertex.frame.color = NULL)
+
+## high dens
+high$Species <- net.data[[2]]$Species
+g.data.high <- high %>% pivot_longer(cols = dwvb:abpv, names_to = 'Virus', values_to = 'Yes') %>% 
+  mutate(e.col = rep(col, times = 15)) %>% filter(Yes != 0) %>% rename(weight = Yes) %>%
+  #mutate(Species = sub('(.).* ', '. ', Species)) 
+  mutate(Species = sub('Andrena', "A.", Species)) %>% mutate(Species = sub('Apis', "A.", Species)) %>% 
+  mutate(Species = sub('Bombus', "B.", Species)) %>% 
+  mutate(Species = sub('Lasioglossum', "L.", Species)) %>% 
+  mutate(Species = sub('Melitta', "M.", Species)) %>% mutate(Species = sub('Seladonia', "S.", Species)) %>% 
+  mutate(Species = sub('Eucera', "E.", Species)) %>% mutate(Species = sub('Colletes', "C.", Species)) %>%
+  mutate(Virus = recode_factor(as.factor(Virus), 'dwvb' = 'DWV-B', bqcv = 'BQCV', sbv = 'SBV', abpv = 'ABPV'))
+#deg <- high %>% pivot_longer(cols = dwvb:abpv, names_to = 'Virus', values_to = 'Yes') %>% filter(Yes != 0) %>% select(Yes)
+g.data.high <- g.data.high[,c(2,1,3,4)]
+#colrs <- adjustcolor( c("gray50", "tomato", "gold", "yelhighgreen"), alpha=.6)
+g <- graph.data.frame(g.data.high, directed = T)
+
+V(g)$type <- bipartite.mapping(g)$type
+#V(g)$shape <- ifelse(V(g)$type == TRUE, "circle", "circle")
+V(g)$color <- ifelse(V(g)$type  == TRUE, "#ecde51", "#ec5a51")
+V(g)$color <- c('#547f7f', '#7f5454','#6a547f','#6a7f54',  rep('#ecde51', times = 15))
+V(g)$frame.color <- c('#547f7f', '#7f5454','#6a547f','#6a7f54', rep('#ecde51', times = 15))
+V(g)$size <- degree(g)+25
+E(g)$color <- E(g)$e.col
+
+E(g)$width <- E(g)$weight*0.1
+plot(g, layout = layout_in_circle(g), edge.arrow.size = 0.5, vertex.label.color = 'black', vertex.label.cex = 0.8, vertex.frame.color = NULL)
