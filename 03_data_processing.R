@@ -9,16 +9,16 @@ hind <- read.csv('Data/hind_2022.csv') # honey bee pathogens
 bind <- read.csv('Data/bind_2022.csv') # B. lapidarius bee pathogens
 pind <- read.csv('Data/pind_2022.csv') # B. pascuorum pathogens - not finished!
 wind <- read.csv('Data/wind_2022.csv') # other wild bee pathogens
-wind.sp <- read.csv('Data/WIND_species.csv') %>% select(Sample_ID, Species) # updated barcodes for wild bees
+wind.sp <- read.csv('Data/WIND_species.csv') %>% dplyr::select(Sample_ID, Species) # updated barcodes for wild bees
 load('Data/abs_pathogen240212.RData') # normalized absolute quantification
 dens <- read.csv('Data/density.csv') # which site is density high
 hb.ab <- read.csv('Data/hb_abundance2022.csv') # Kathrin's honey bee abundance 
  
-load('Data/landuse2022.RData') # landuse composition at scales from 200 to 2000 m
-load('Data/landscape_metrics2022.RData') # Shannon index, Edge density, patch edge length, patch ENND, IJI, flower strips ENND at 500, 1000, 1500, and 2000 m radii
+load('Data/240617_landuse2022.RData') # landuse composition at scales from 200 to 2000 m
+load('Data/240617landscape_metrics2022.RData') # Shannon index, Edge density, patch edge length, patch ENND, IJI, flower strips ENND at 500, 1000, 1500, and 2000 m radii
 load('Data/fl_cover_extr.RData') # extrapolated flower cover
 
-wind <- wind %>% select(-Species) %>% left_join(wind.sp, by = join_by('Sample.ID' == 'Sample_ID')) # updating the barcodes
+wind <- wind %>% dplyr::select(-Species) %>% left_join(wind.sp, by = join_by('Sample.ID' == 'Sample_ID')) # updating the barcodes
 q.norm[is.na(q.norm)] <- 0 # changing undetected Ct to 0
 
 ## current issues:
@@ -66,10 +66,9 @@ all2 <- rbind(hind2, bind2, wind2, pind2)
 
 data <- all2 %>% rename(Sample = Sample.ID) %>% left_join(q.norm, by = 'Sample') %>% 
   left_join(dens, by = 'Site') %>%
-  left_join(land.all %>% filter(radius == '2000m'), by = 'Site') %>%
-  left_join(Het[['2000m']] %>% select(Site, SH, Iji, Ennd.Total_flowerstrip, Edge.dens), by = 'Site') %>%
-  left_join(flower.extr[['2000m']] %>% filter(Run !=3) %>% group_by(Site, Run) %>% summarise(fl.cv = sum(flower.cover)) %>%
-              group_by(Site) %>% summarise(fl.cv = mean(fl.cv)), by = 'Site') %>%
+  left_join(land.all %>% filter(radius == '1000m'), by = 'Site') %>%
+  mutate(across(Ann.fl:AES, function(x) round(x / ((3.14 * 1000^2)/10000), digits = 3), .names = '{col}.p')) %>%
+  left_join(land_metrics1000, by = 'Site') %>%
   mutate(Density = as.factor(Density)) %>%
   filter(Species != "" & Species != 'NA' & Species != 'Sipha flava' & Species != 'Bombus sylvarum' & Species != 'Oedogonium sp. BN3'
          & Species != 'Megalocoleus molliculus' & Species != 'Orasema occidentalis' & Species != 'Orisarma intermedium' & Species != 'Lindenius albilabris')
@@ -132,10 +131,10 @@ data[1:8] %>% pivot_longer(cols = dwvb:sbv, names_to = 'Virus', values_to = 'Pre
   theme(legend.position = 'none')+
   ylim(0,1)
 
-data %>% filter(Group == 'hb') %>% filter(Site == 'Gos2') %>% select(Sample, ABPV.abs)
-data %>% filter(Group == 'bb') %>% filter(Site == 'Gos2') %>% select(Sample, ABPV.abs)
-data %>% filter(Group == 'bp') %>% filter(Site == 'Gos2') %>% select(Sample, ABPV.abs)
-data %>% filter(Group == 'wb') %>% filter(Site == 'Gos2') %>% select(Sample, ABPV.abs)
+data %>% filter(Group == 'hb') %>% filter(Site == 'Gos2') %>% dplyr::select(Sample, ABPV.abs)
+data %>% filter(Group == 'bb') %>% filter(Site == 'Gos2') %>% dplyr::select(Sample, ABPV.abs)
+data %>% filter(Group == 'bp') %>% filter(Site == 'Gos2') %>% dplyr::select(Sample, ABPV.abs)
+data %>% filter(Group == 'wb') %>% filter(Site == 'Gos2') %>% dplyr::select(Sample, ABPV.abs)
 
 h <- hind2 %>% left_join(dens, by = 'Site') %>% pivot_longer(cols = dwvb:sbv, names_to = 'Virus', values_to = 'Presence') %>% 
   group_by(Virus, Density) %>% summarise(Prev = mean(Presence)) %>% mutate(Virus = factor(Virus, levels = c('dwvb', 'bqcv', 'abpv', 'sbv'))) %>%

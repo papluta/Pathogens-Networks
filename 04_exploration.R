@@ -21,75 +21,76 @@ rstan_options(auto_write = TRUE)
 
 
 data.hb <- data %>% filter(Group == 'hb') %>% 
-  mutate(across(Ann.fl:fl.cv, ~ scale(.)[,1]))
+  mutate(across(Ann.fl:Edge.dens, ~ scale(.)[,1]))
 
-data.bb <- data %>% filter(Group == 'bb') %>% 
-  mutate(across(Ann.fl:fl.cv, ~ scale(.)[,1]))
+data.bb <- data %>% filter(Group == 'bb' | Group == 'bp') %>% 
+  mutate(across(Ann.fl:Edge.dens, ~ scale(.)[,1]))
 
 data.wb <- data %>% filter(Group == 'wb') %>% 
-  mutate(across(Ann.fl:fl.cv, ~ scale(.)[,1])) %>%
+  mutate(across(Ann.fl:Edge.dens, ~ scale(.)[,1])) %>%
   mutate(Genus = gsub(' .*', '', Species)) %>%
   # filtering out erroneous barcodes
   filter(Genus != '') %>% filter(Genus != ('Sipha')) %>% filter(Genus != ('Trypoxylon')) %>% filter(Genus != ('Orisarma')) %>% 
   filter(Genus != ('Lindenius')) %>% filter(Genus != ('Oedogonium')) %>% filter(Genus != ('Orasema')) %>% filter(Genus != ('Megalocoleus')) %>% filter(Genus != ('Bombus'))
 
-b <- data.wb %>% group_by(Genus, Species) %>% summarise(S_n = n())  # 236 Andrena, 55 Lasioglossum
+b <- data.wb %>% group_by(Species) %>% summarise(S_n = n()) %>% filter(S_n == 1) # 236 Andrena, 55 Lasioglossum
 print(data.wb %>% group_by(Site) %>% summarise(n = n()), n = Inf) # Nor 174 only 6 samples, Wm1316 7
 
-data.wb %>% filter(Species == 'Andrena nigroolivacea')
+data.wb <- data.wb %>% left_join(b, by = 'Species') %>% filter(is.na(S_n))
+
 ### AES ###
 # separate models for each virus and bee group
 # default (improper) priors
 
-dwvb.h <- brm(bf(DWVB.abs ~ (Org.farm + SNH + Ann.fl) * Density + (1 |Site),
-                  hu ~ (Org.farm + SNH + Ann.fl) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+dwvb.h <- brm(bf(DWVB.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site),
+                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-dwvb.b <- brm(bf(DWVB.abs ~ (Org.farm + SNH + Ann.fl) * Density +  (1 |Site),
-                  hu ~ (Org.farm + SNH + Ann.fl) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+dwvb.b <- brm(bf(DWVB.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + Species + (1 |Site),
+                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + Species + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-dwvb.w <- brm(bf(DWVB.abs ~ (Org.farm + SNH + Ann.fl) * Density + (1 |Site) + (1|Genus),
-                  hu ~ (Org.farm + SNH + Ann.fl) * Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
-                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-
-bqcv.h <- brm(bf(BQCV.abs ~ (Org.farm + SNH + Ann.fl) * Density +  (1 |Site),
-                  hu ~ (Org.farm + SNH + Ann.fl) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
-                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-bqcv.b <- brm(bf(BQCV.abs ~ (Org.farm + SNH + Ann.fl) * Density +  (1 |Site),
-                  hu ~ (Org.farm + SNH + Ann.fl) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
-                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-bqcv.w <- brm(bf(BQCV.abs ~ (Org.farm + SNH + Ann.fl) * Density + (1 |Site) + (1|Genus),
-                  hu ~ (Org.farm + SNH + Ann.fl) * Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
+dwvb.w <- brm(bf(DWVB.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site) + (1|Genus),
+                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
 
-abpv.h <- brm(bf(ABPV.abs ~ (Org.farm + SNH + Ann.fl) * Density +  (1 |Site),
-                  hu ~ (Org.farm + SNH + Ann.fl) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+bqcv.h <- brm(bf(BQCV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site),
+                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-abpv.b <- brm(bf(ABPV.abs ~ (Org.farm + SNH + Ann.fl) * Density +  (1 |Site),
-                  hu ~ (Org.farm + SNH + Ann.fl) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+bqcv.b <- brm(bf(BQCV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site),
+                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-abpv.w <- brm(bf(ABPV.abs ~ (Org.farm + SNH + Ann.fl) * Density + (1 |Site) + (1|Genus),
-                  hu ~ (Org.farm + SNH + Ann.fl) * Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
+bqcv.w <- brm(bf(BQCV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site) + (1|Genus),
+                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
 
-sbv.h <- brm(bf(SBV.abs ~ (Org.farm + SNH + Ann.fl) * Density +  (1 |Site),
-                  hu ~ (Org.farm + SNH + Ann.fl) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+abpv.h <- brm(bf(ABPV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site),
+                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+abpv.b <- brm(bf(ABPV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site),
+                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+abpv.w <- brm(bf(ABPV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site) + (1|Genus),
+                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+
+sbv.h <- brm(bf(SBV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site),
+                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-sbv.b <- brm(bf(SBV.abs ~ (Org.farm + SNH + Ann.fl) * Density +  (1 |Site),
-                  hu ~ (Org.farm + SNH + Ann.fl) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+sbv.b <- brm(bf(SBV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site),
+                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-sbv.w <- brm(bf(SBV.abs ~ (Org.farm + SNH + Ann.fl) * Density + (1 |Site) + (1|Genus),
-                  hu ~ (Org.farm + SNH + Ann.fl) * Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
+sbv.w <- brm(bf(SBV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site) + (1|Genus),
+                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
 
