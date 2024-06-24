@@ -12,11 +12,27 @@ wind <- read.csv('Data/wind_2022.csv') # other wild bee pathogens
 wind.sp <- read.csv('Data/WIND_species.csv') %>% dplyr::select(Sample_ID, Species) # updated barcodes for wild bees
 load('Data/abs_pathogen240212.RData') # normalized absolute quantification
 dens <- read.csv('Data/density.csv') # which site is density high
-hb.ab <- read.csv('Data/hb_abundance2022.csv') # Kathrin's honey bee abundance 
- 
+hb.ab <- read.csv('Data/hb_abundance2022.csv') # Kathrin's honey bee abundance
+load('Data/240621network_parameters.RData')
+
+
 load('Data/240617_landuse2022.RData') # landuse composition at scales from 200 to 2000 m
 load('Data/240617landscape_metrics2022.RData') # Shannon index, Edge density, patch edge length, patch ENND, IJI, flower strips ENND at 500, 1000, 1500, and 2000 m radii
-load('Data/fl_cover_extr.RData') # extrapolated flower cover
+#load('Data/fl_cover_extr.RData') # extrapolated flower cover
+
+fl.cv <- read_csv('Data/Flowercover2022.csv')
+
+
+distinct(fl.cv, Transect_type) # the different habitat types
+
+# assigning the habitat types AES labels
+hm <- data.frame(Transect_type = distinct(fl.cv, Transect_type),
+                 Transect_type2 = c('Other_AUM', 'Flower_fieBS11', 'Flower_fieBS12', 'Flower_fieBS2', 'Fallow', 'Grassland','Grassy_str', 'CropBV1', 'GrasslandBV1'),
+                 Edge_only = c(0, 0, 0, 0, 0, 0, 1, 0, 0)) # when calculating area treat grassy strips as an edge
+hm2 <- data.frame(Transect_type = distinct(fl.cv, Transect_type),
+                  AES = c('SNH', 'Flower', 'Flower', 'Flower','SNH','SNH','SNH','Org.farm','Org.farm'))
+fl.cv2 <- fl.cv %>% mutate(Date = as.Date(Date, '%m/%d/%Y')) %>% filter(Run == 2) %>% group_by( Site) %>% summarise(flcv.m = mean(Total_flower_cover_percentage), Date = max(Date))
+
 
 wind <- wind %>% dplyr::select(-Species) %>% left_join(wind.sp, by = join_by('Sample.ID' == 'Sample_ID')) # updating the barcodes
 q.norm[is.na(q.norm)] <- 0 # changing undetected Ct to 0
@@ -71,10 +87,19 @@ data <- all2 %>% rename(Sample = Sample.ID) %>% left_join(q.norm, by = 'Sample')
   left_join(land_metrics1000, by = 'Site') %>%
   mutate(Density = as.factor(Density)) %>%
   filter(Species != "" & Species != 'NA' & Species != 'Sipha flava' & Species != 'Bombus sylvarum' & Species != 'Oedogonium sp. BN3'
-         & Species != 'Megalocoleus molliculus' & Species != 'Orasema occidentalis' & Species != 'Orisarma intermedium' & Species != 'Lindenius albilabris')
+         & Species != 'Megalocoleus molliculus' & Species != 'Orasema occidentalis' & Species != 'Orisarma intermedium' & Species != 'Lindenius albilabris') %>%
+  left_join(network_parameters2, by = 'Site') %>% rename(weighted.nested = `weighted NODF`) %>%
+  left_join(fl.cv2, by = 'Site') %>%
+  left_join(network_parameters_species3, by = join_by('Site', 'Species'))
 
-hm <- pind2 %>% left_join(dens, by = 'Site') %>% pivot_longer(cols = dwvb:sbv, names_to = 'Virus', values_to = 'Presence') %>% group_by(Virus, Density) %>% summarise(Prev = mean(Presence))
+dif <- data %>% select(Site, Species, dwvb) %>% full_join(network_parameters_species3, by = join_by('Site', 'Species'))
+#hm <- pind2 %>% left_join(dens, by = 'Site') %>% pivot_longer(cols = dwvb:sbv, names_to = 'Virus', values_to = 'Presence') %>% group_by(Virus, Density) %>% summarise(Prev = mean(Presence))
 
+
+no.match.Pat <- subset(dif, is.na(closeness))
+no.match.Kat <- subset(dif, is.na(dwvb))
+
+  
 library(cowplot)
 
 # prevalence

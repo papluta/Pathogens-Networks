@@ -145,3 +145,48 @@ pp_hurdle <- function(mod) {
   ppc_dens_overlay(y = log1p(y1), 
                    yrep = log1p(pred[1:length(y1),]))
 }
+
+posterior_density <- function(mod_list, variable) {
+  post <- lapply(mod_list, as_draws_df) 
+  post2 <- lapply(post, function (x) select(x, variable))
+  post3 <- post2 %>% bind_rows(.id = 'mod') %>% rename(post = 2)
+  dens_plot <- post3 %>%
+    ggplot(aes(x = post, col = mod, fill = mod))+
+    geom_density(alpha = 0.1, linewidth = 1.2)+
+    theme_bw(base_size = 20)+
+    geom_vline(xintercept = 0, linetype = 'dashed', linewidth = 1)+
+    scale_color_manual(values = c('#f1c40f','#f1c40f','#f1c40f','#00806A','#00806A','#00806A', '#0a81f1','#0a81f1','#0a81f1', '#dc78c7', '#dc78c7', '#dc78c7'))+
+    scale_fill_manual(values = c('#f1c40f','#f1c40f','#f1c40f','#00806A','#00806A','#00806A', '#0a81f1','#0a81f1','#0a81f1', '#dc78c7', '#dc78c7', '#dc78c7'))
+  return(dens_plot)
+}
+
+plot_forest <- function(mod, effect, dpar) {
+  plot <- conditional_effects(mod, effects = effects, dpar = dpar)[[1]]
+  dat <- mod$data %>% select(x = gsub(':.*','', effects), y = colnames(plot %>% select(contains('abs'))), Density) %>% mutate(y = ifelse( y >0, 1, 0))
+  pd <- custom_summary(mod) %>% filter(grepl(gsub(':.*','', effects), Predictor)) %>% filter(grepl(":", Predictor)) %>% mutate(hu = ifelse(grepl("hu",Predictor), 'hu', 'mu')) %>%
+    filter(hu == dpar) %>% select(pd) %>% mutate(pd = round(pd, digits = 2))
+  plot2 <- plot %>% 
+  ggplot(x, aes(x = Estimate, y = Response))+
+    geom_vline(xintercept = 0, color = 'grey', linewidth = 0.8)+
+    geom_linerange(aes(xmin = CI_low_90, xmax = CI_high_90), linewidth = 1, color = 'black')+
+    #geom_linerange(aes(xmin = CI_l90, xmax = CI_h90), linewidth = 2.1, color = '#a40b0b')+
+    geom_point(shape = 21, size = 4, color = 'black', fill = '#dc3a3a')+
+    theme_bw(base_size = 16, base_line_size = 16/44)+
+    theme(axis.text.y = element_blank())+
+    labs(x = NULL, y = NULL)
+  return(plot2)
+}
+
+plot_forest <- function(mod, effect) {
+  plot <- lapply(mod, custom_summary) 
+  plot2 <- lapply(plot, function(x) filter(x, Predictor == effect)) %>% bind_rows(.id = 'mod') %>%
+    ggplot(aes(x = Estimate, y = mod))+
+  geom_vline(xintercept = 0, color = 'grey', linewidth = 0.8)+
+  geom_linerange(aes(xmin = CI_low_90, xmax = CI_high_90), linewidth = 1, color = 'black')+
+  #geom_linerange(aes(xmin = CI_l90, xmax = CI_h90), linewidth = 2.1, color = '#a40b0b')+
+  geom_point(shape = 21, size = 4, color = 'black', fill = '#dc3a3a')+
+  theme_bw(base_size = 16, base_line_size = 16/44)+
+  labs(x = NULL, y = NULL)
+  return(plot2)
+}
+

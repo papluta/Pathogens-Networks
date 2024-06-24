@@ -19,7 +19,6 @@ rstan_options(auto_write = TRUE)
 # dimensionality of networks: 10.1111/ELE.14383
 # sem: landscape -> networks -> prevalence
 
-
 data.hb <- data %>% filter(Group == 'hb') %>% 
   mutate(across(Ann.fl:Edge.dens, ~ scale(.)[,1]))
 
@@ -50,8 +49,8 @@ dwvb.b <- brm(bf(DWVB.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + Species 
                   hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + Species + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-dwvb.w <- brm(bf(DWVB.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site) + (1|Genus),
-                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
+dwvb.w <- brm(bf(DWVB.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site) + (1|Species),
+                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
 
@@ -115,8 +114,9 @@ rownames(cs.all) <- NULL
 
 pp.all <- lapply(AES_dens_models, pp_hurdle) %>% bind_rows(.id = 'id')
 
-dens_plot_hu(AES_dens_models[[3]], effects = 'Ann.fl:Density') # Nor578 is an outlier for org farming
-dens_plot_mu(AES_dens_models[[1]], effects = 'SNH:Density')
+dens_plot_mu(AES_dens_models[['dwvb.h']], effects = 'SNH.p:Density') # Nor578 is an outlier for org farming
+dens_plot_hu(AES_dens_models[[3]], effects = 'Ann.fl.p:Density') # Nor578 is an outlier for org farming
+dens_plot_mu(AES_dens_models[[1]], effects = 'SNH.p:Density')
 
 
 library(bipartite)
@@ -199,3 +199,110 @@ E(g)$color <- E(g)$e.col
 
 E(g)$width <- E(g)$weight*0.1
 plot(g, layout = layout_in_circle(g), edge.arrow.size = 0.5, vertex.label.color = 'black', vertex.label.cex = 0.8, vertex.frame.color = NULL)
+
+
+dwvb.h <- brm(bf(DWVB.abs ~ weighted.nested + Density + (1 |Site),
+                 hu ~ weighted.nested + Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+dwvb.b <- brm(bf(DWVB.abs ~ weighted.nested + Density + Species + (1 |Site),
+                 hu ~ weighted.nested + Density + Species + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+dwvb.w <- brm(bf(DWVB.abs ~ weighted.nested + Density + (1 |Site) + (1|Species),
+                 hu ~ weighted.nested + Density +  (1 |Site) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+
+bqcv.h <- brm(bf(BQCV.abs ~ weighted.nested + Density +  (1 |Site),
+                 hu ~ weighted.nested + Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+bqcv.b <- brm(bf(BQCV.abs ~ weighted.nested + Density +  (1 |Site),
+                 hu ~ weighted.nested + Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+bqcv.w <- brm(bf(BQCV.abs ~ weighted.nested + Density + (1 |Site) + (1|Genus),
+                 hu ~ weighted.nested + Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+
+abpv.h <- brm(bf(ABPV.abs ~ weighted.nested * Density +  (1 |Site),
+                 hu ~ weighted.nested + Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+abpv.b <- brm(bf(ABPV.abs ~ weighted.nested + Density +  (1 |Site),
+                 hu ~ weighted.nested + Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+abpv.w <- brm(bf(ABPV.abs ~ weighted.nested + Density + (1 |Site) + (1|Genus),
+                 hu ~ weighted.nested + Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+
+sbv.h <- brm(bf(SBV.abs ~ weighted.nested + Density +  (1 |Site),
+                hu ~ weighted.nested + Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+               c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                 prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+sbv.b <- brm(bf(SBV.abs ~ weighted.nested + Density +  (1 |Site),
+                hu ~ weighted.nested + Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+               c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                 prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+sbv.w <- brm(bf(SBV.abs ~ weighted.nested + Density + (1 |Site) + (1|Genus),
+                hu ~ weighted.nested + Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
+               c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                 prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+
+SH_dens_models <- list(dwvb.h, dwvb.b, dwvb.w, 
+                        bqcv.h, bqcv.b, bqcv.w, 
+                        abpv.h, abpv.b, abpv.w, 
+                        sbv.h, sbv.b, sbv.w)
+
+names(SH_dens_models) <- c('dwvb.h', 'dwvb.b', 'dwvb.w', 
+                            'bqcv.h', 'bqcv.b', 'bqcv.w', 
+                            'abpv.h', 'abpv.b', 'abpv.w', 
+                            'sbv.h', 'sbv.b', 'sbv.w')
+
+cs.all <- lapply(SH_dens_models, custom_summary) %>% bind_rows(.id = 'id')
+rownames(cs.all) <- NULL
+
+pp.all <- lapply(SH_dens_models, pp_hurdle) %>% bind_rows(.id = 'id')
+
+dens_plot_mu(SH_dens_models[[12]], effects = 'SH:Density') 
+dens_plot_hu(SH_dens_models[[11]], effects = 'SH') 
+
+conditional_effects(SH_dens_models[[11]], dpar = 'hu')
+
+nm <- posterior_density(SH_dens_models, 'b_Density1')
+plot(nm)
+
+plot_forest(SH_dens_models[[1]], 'SH:Density', dpar = 'hu')
+
+plot_forest(SH_dens_models, effect = 'Density')
+
+plot <- lapply(SH_dens_models, custom_summary) 
+plot2 <- lapply(plot, function(x) filter(x, Predictor == 'SH')) %>% bind_rows(.id = 'mod') %>%
+  ggplot(aes(x = Estimate, y = mod))+
+  geom_vline(xintercept = 0, color = 'grey', linewidth = 0.8)+
+  geom_linerange(aes(xmin = CI_low_90, xmax = CI_high_90), linewidth = 1, color = 'black')+
+  #geom_linerange(aes(xmin = CI_l90, xmax = CI_h90), linewidth = 2.1, color = '#a40b0b')+
+  geom_point(shape = 21, size = 4, color = 'black', fill = '#dc3a3a')+
+  theme_bw(base_size = 16, base_line_size = 16/44)+
+  #theme(axis.text.y = element_blank())+
+  labs(x = NULL, y = NULL)
+plot2
+
+## net
+
+library(lme4)
+library(glmmTMB)
+library(DHARMa)
+library(car)
+
+net <- data %>% distinct(Site, connectance, niche.overlap.HL, `weighted.nested`, Density, SH, flcv.m)
+
+m <- lm(`weighted.nested` ~ Density + SH, net)
+m <- lm(connectance ~ Density + flcv.m, net)
+summary(m)
+DHARMa::testDispersion(m)
+plot(so <- simulateResiduals(m))
