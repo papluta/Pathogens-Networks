@@ -96,8 +96,8 @@ dens_plot_hu <- function(mod, effects) {
 
 force_plot <- function(mod, effects) {
   plot <- conditional_effects(mod, effects = effects, dpar = 'mu')[[1]] %>% mutate(effect2__ = as.numeric(as.character(effect2__)))
-  dat <- mod$data %>% select(x = gsub(':.*','', effects), y = colnames(plot %>% select(contains('abs'))), Flower = colnames(plot %>% select(contains('Iji')))) %>% 
-    filter(y != 0) %>% mutate(Flower2 = as.factor(cut(Flower, 3, labels = c('1000', '2000', '3000'))))
+  dat <- mod$data %>% select(x = gsub(':.*','', effects), y = colnames(plot %>% select(contains('abs'))), Flower = colnames(plot %>% select(contains('.fl')))) %>% 
+    filter(y != 0) %>% mutate(Flower2 = as.factor(cut(Flower, 3, labels = c('low', 'medium', 'high'))))
   pd <- custom_summary(mod) %>% filter(grepl(":", Predictor)) %>% mutate(hu = ifelse(grepl("hu",Predictor), 1, 0)) %>%
     filter(hu == 0) %>% select(pd) %>% mutate(pd = round(pd, digits = 2))
   plot2 <- plot %>% 
