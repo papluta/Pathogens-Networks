@@ -3,6 +3,7 @@ library(readr)
 library(dplyr)
 library(tidyr)
 library(cowplot)
+source('02_flower_cover.R')
 
 ### DATA ###
 hind <- read.csv('Data/hind_2022.csv') # honey bee pathogens
@@ -19,19 +20,6 @@ load('Data/240621network_parameters.RData')
 load('Data/240617_landuse2022.RData') # landuse composition at scales from 200 to 2000 m
 load('Data/240617landscape_metrics2022.RData') # Shannon index, Edge density, patch edge length, patch ENND, IJI, flower strips ENND at 500, 1000, 1500, and 2000 m radii
 #load('Data/fl_cover_extr.RData') # extrapolated flower cover
-
-fl.cv <- read_csv('Data/Flowercover2022.csv')
-
-
-distinct(fl.cv, Transect_type) # the different habitat types
-
-# assigning the habitat types AES labels
-hm <- data.frame(Transect_type = distinct(fl.cv, Transect_type),
-                 Transect_type2 = c('Other_AUM', 'Flower_fieBS11', 'Flower_fieBS12', 'Flower_fieBS2', 'Fallow', 'Grassland','Grassy_str', 'CropBV1', 'GrasslandBV1'),
-                 Edge_only = c(0, 0, 0, 0, 0, 0, 1, 0, 0)) # when calculating area treat grassy strips as an edge
-hm2 <- data.frame(Transect_type = distinct(fl.cv, Transect_type),
-                  AES = c('SNH', 'Flower', 'Flower', 'Flower','SNH','SNH','SNH','Org.farm','Org.farm'))
-fl.cv2 <- fl.cv %>% mutate(Date = as.Date(Date, '%m/%d/%Y')) %>% filter(Run == 2) %>% group_by( Site) %>% summarise(flcv.m = mean(Total_flower_cover_percentage), Date = max(Date))
 
 
 wind <- wind %>% dplyr::select(-Species) %>% left_join(wind.sp, by = join_by('Sample.ID' == 'Sample_ID')) # updating the barcodes
@@ -80,6 +68,34 @@ wind2 <- wind %>% filter(X28S < 27) %>% dplyr::select(-X28S) %>%
 
 all2 <- rbind(hind2, bind2, wind2, pind2)
 
+hb.prev <- hind2 %>% group_by(Site) %>% summarise(dwvb.hb = mean(dwvb),
+                                                  bqcv.hb = mean(bqcv),
+                                                  abpv.hb = mean(abpv),
+                                                  sbv.hb = mean(sbv))
+
+##### KATHRINS DATA######
+
+#flower_Kat <- read.csv('Data/fc_extrapol_2022_20240625.csv')
+#flower_Kat2 <- flower_Kat %>% filter(Run == 2)
+#flower_Kat2$totalFC_h <- flower_Kat2$totalFC / 10000
+
+#flower_Kat2
+#ann.fl <- data.frame(flower_Kat2$Landscape_ID, flower_Kat2$fcflowerf_stand/flower_Kat2$Annual_flower/100)
+#org <- data.frame(flower_Kat2$Landscape_ID, flower_Kat2$fcorganic_stand/land_Kat$CropBV1/100)
+
+#flower_cover <- fl.cv2 %>% filter(Run == 2) %>% group_by(Site, AES) %>% summarise(flower_mean = mean(flcv.m)) %>% pivot_wider(names_from = AES, values_from = flower_mean)
+#print(flower_cover, n = Inf)
+
+#flower_Pat <- flower1000 %>% mutate(totalFC_h_P = round(sum.fl / ((3.14 * 1000^2)/10000), digits = 3))
+#hb_Kat <- read.csv('Data/hb_run2_extrapolated_2022_20240625.csv')
+#land_Kat <- read.csv('Data/Landscape_variables_ComBee_2022_20230203.csv')
+
+#comp <- land_Kat %>% select(Land_ID, CropBV1, Annual_flower, semi) %>% mutate(Land_ID = sub('Wm', 'WM', Land_ID)) %>% left_join(land1000 %>% select(Site, Org.farm, Ann.fl, SNH), by = join_by('Land_ID' == 'Site'))
+
+#data_Kat <- flower_Kat2 %>% select(Landscape_ID, totalFC, totalFC_h, totalagrfcm2) %>% rename(Site = Landscape_ID, FL_per_agr = totalagrfcm2) %>%
+#  left_join(hb_Kat %>% mutate(HB_per_agr = Total_honeybee_abu / agr_total_m2, totalHB_h = Total_honeybee_abu/10000) %>% select(Landscape_ID, Total_honeybee_abu, totalHB_h, HB_per_agr) %>% rename(Site = Landscape_ID, totalHB = Total_honeybee_abu), by = 'Site')
+
+
 data <- all2 %>% rename(Sample = Sample.ID) %>% left_join(q.norm, by = 'Sample') %>% 
   left_join(dens, by = 'Site') %>%
   left_join(land.all %>% filter(radius == '1000m'), by = 'Site') %>%
@@ -89,12 +105,16 @@ data <- all2 %>% rename(Sample = Sample.ID) %>% left_join(q.norm, by = 'Sample')
   filter(Species != "" & Species != 'NA' & Species != 'Sipha flava' & Species != 'Bombus sylvarum' & Species != 'Oedogonium sp. BN3'
          & Species != 'Megalocoleus molliculus' & Species != 'Orasema occidentalis' & Species != 'Orisarma intermedium' & Species != 'Lindenius albilabris') %>%
   left_join(network_parameters2, by = 'Site') %>% rename(weighted.nested = `weighted NODF`) %>%
-  left_join(fl.cv2, by = 'Site') %>%
-  left_join(network_parameters_species3, by = join_by('Site', 'Species'))
+  #left_join(fl.cv2, by = 'Site') %>%
+  left_join(network_parameters_species3, by = join_by('Site', 'Species')) %>%
+  left_join(flower1000 %>% select(Site, sum.fl, FL_per_agr), by = 'Site') %>% left_join(honeybees1000%>% select(Site, sum.hb, HB_per_agr), by = 'Site') %>%
+  left_join(hb.prev, by = 'Site') %>%
+  mutate(across(dwvb.hb:sbv.hb, function(x) x * sum.hb, .names = '{col}.f')) %>%
+  mutate(across(dwvb.hb:sbv.hb, function(x) x * HB_per_agr, .names = '{col}.agr'))
+  
+  
 
 dif <- data %>% select(Site, Species, dwvb) %>% full_join(network_parameters_species3, by = join_by('Site', 'Species'))
-#hm <- pind2 %>% left_join(dens, by = 'Site') %>% pivot_longer(cols = dwvb:sbv, names_to = 'Virus', values_to = 'Presence') %>% group_by(Virus, Density) %>% summarise(Prev = mean(Presence))
-
 
 no.match.Pat <- subset(dif, is.na(closeness))
 no.match.Kat <- subset(dif, is.na(dwvb))
@@ -214,3 +234,4 @@ data[1:13] %>% pivot_longer(cols = DWVB.abs:SBV.abs, names_to = 'Virus', values_
   theme(legend.position = 'none')+
   scale_fill_manual(values = c('#ebb93a', '#c9183a'))+
   labs(x = NULL, y = 'Log-viral load')
+

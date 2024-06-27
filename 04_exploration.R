@@ -19,105 +19,185 @@ rstan_options(auto_write = TRUE)
 # dimensionality of networks: 10.1111/ELE.14383
 # sem: landscape -> networks -> prevalence
 
-data.hb <- data %>% filter(Group == 'hb') %>% 
-  mutate(across(Ann.fl:Edge.dens, ~ scale(.)[,1]))
+data.hb <- data %>% filter(Group == 'hb') %>% ungroup() %>%
+  mutate(across(Ann.fl:sbv.hb.agr, ~ scale(.)[,1]))
 
-data.bb <- data %>% filter(Group == 'bb' | Group == 'bp') %>% 
-  mutate(across(Ann.fl:Edge.dens, ~ scale(.)[,1]))
+data.bb <- data %>% filter(Group == 'bb' | Group == 'bp') %>% ungroup() %>%
+  mutate(across(Ann.fl:sbv.hb.agr, ~ scale(.)[,1]))
+
 
 data.wb <- data %>% filter(Group == 'wb') %>% 
   mutate(across(Ann.fl:Edge.dens, ~ scale(.)[,1])) %>%
   mutate(Genus = gsub(' .*', '', Species)) %>%
   # filtering out erroneous barcodes
   filter(Genus != '') %>% filter(Genus != ('Sipha')) %>% filter(Genus != ('Trypoxylon')) %>% filter(Genus != ('Orisarma')) %>% 
-  filter(Genus != ('Lindenius')) %>% filter(Genus != ('Oedogonium')) %>% filter(Genus != ('Orasema')) %>% filter(Genus != ('Megalocoleus')) %>% filter(Genus != ('Bombus'))
+  filter(Genus != ('Lindenius')) %>% filter(Genus != ('Oedogonium')) %>% filter(Genus != ('Orasema')) %>% filter(Genus != ('Megalocoleus')) %>% 
+  filter(Genus != ('Bombus')) %>% ungroup() %>%
+  mutate(across(Ann.fl:sbv.hb.agr, ~ scale(.)[,1]))
 
 b <- data.wb %>% group_by(Species) %>% summarise(S_n = n()) %>% filter(S_n == 1) # 236 Andrena, 55 Lasioglossum
 print(data.wb %>% group_by(Site) %>% summarise(n = n()), n = Inf) # Nor 174 only 6 samples, Wm1316 7
 
 data.wb <- data.wb %>% left_join(b, by = 'Species') %>% filter(is.na(S_n))
 
-### AES ###
 # separate models for each virus and bee group
-# default (improper) priors
+# virus.hb.f = honey bee prevalence * honey bee abundance
+# not running honey bee models, because the infection force is based on their viral prevalence
 
-dwvb.h <- brm(bf(DWVB.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site),
-                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+dwvb.h <- brm(bf(DWVB.abs ~ dwvb.hb.agr + connectance + (1 |Site),
+                  hu ~ dwvb.hb.agr + connectance + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-dwvb.b <- brm(bf(DWVB.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + Species + (1 |Site),
-                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + Species + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+dwvb.b <- brm(bf(DWVB.abs ~ dwvb.hb.agr + connectance + Species + (1 |Site),
+                  hu ~ dwvb.hb.agr + connectance + Species + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-dwvb.w <- brm(bf(DWVB.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site) + (1|Species),
-                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
-                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-
-bqcv.h <- brm(bf(BQCV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site),
-                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
-                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-bqcv.b <- brm(bf(BQCV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site),
-                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
-                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-bqcv.w <- brm(bf(BQCV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site) + (1|Genus),
-                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
+dwvb.w <- brm(bf(DWVB.abs ~ dwvb.hb.agr + connectance + (1 |Site) + (1|Species),
+                  hu ~ dwvb.hb.agr + connectance +  (1 |Site) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
 
-abpv.h <- brm(bf(ABPV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site),
-                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+bqcv.h <- brm(bf(BQCV.abs ~ bqcv.hb.agr + connectance +  (1 |Site),
+                  hu ~ bqcv.hb.agr + connectance + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-abpv.b <- brm(bf(ABPV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site),
-                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+bqcv.b <- brm(bf(BQCV.abs ~ bqcv.hb.agr + connectance +  (1 |Site),
+                  hu ~ bqcv.hb.agr + connectance + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-abpv.w <- brm(bf(ABPV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site) + (1|Genus),
-                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
+bqcv.w <- brm(bf(BQCV.abs ~ bqcv.hb.agr + connectance + (1 |Site) + (1|Genus),
+                  hu ~ bqcv.hb.agr + connectance +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
 
-sbv.h <- brm(bf(SBV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site),
-                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+abpv.h <- brm(bf(ABPV.abs ~ abpv.hb.agr + connectance +  (1 |Site),
+                  hu ~ abpv.hb.agr + connectance + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+abpv.b <- brm(bf(ABPV.abs ~ abpv.hb.agr + connectance +  (1 |Site),
+                  hu ~ abpv.hb.agr + connectance + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+abpv.w <- brm(bf(ABPV.abs ~ abpv.hb.agr + connectance + (1 |Site) + (1|Genus),
+                  hu ~ abpv.hb.agr + connectance +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+
+sbv.h <- brm(bf(SBV.abs ~ sbv.hb.agr + connectance +  (1 |Site),
+                  hu ~ sbv.hb.agr + connectance + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-sbv.b <- brm(bf(SBV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site),
-                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+sbv.b <- brm(bf(SBV.abs ~ sbv.hb.agr + connectance +  (1 |Site),
+                  hu ~ sbv.hb.agr + connectance + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-sbv.w <- brm(bf(SBV.abs ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density + (1 |Site) + (1|Genus),
-                  hu ~ (Org.farm.p + SNH.p + Ann.fl.p) * Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
+sbv.w <- brm(bf(SBV.abs ~ sbv.hb.agr + connectance + (1 |Site) + (1|Genus),
+                  hu ~ sbv.hb.agr + connectance +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
 
-AES_dens_models <- list(dwvb.h, dwvb.b, dwvb.w, 
-                        bqcv.h, bqcv.b, bqcv.w, 
-                        abpv.h, abpv.b, abpv.w, 
-                        sbv.h, sbv.b, sbv.w)
+CONNECT_FORCE_models <- list(dwvb.b, dwvb.w, 
+                            bqcv.b, bqcv.w, 
+                            abpv.b, abpv.w, 
+                            sbv.b, sbv.w)
 
-names(AES_dens_models) <- c('dwvb.h', 'dwvb.b', 'dwvb.w', 
-                            'bqcv.h', 'bqcv.b', 'bqcv.w', 
-                            'abpv.h', 'abpv.b', 'abpv.w', 
-                            'sbv.h', 'sbv.b', 'sbv.w')
+names(CONNECT_FORCE_models) <- c('dwvb.b', 'dwvb.w',
+                                'bqcv.b', 'bqcv.w', 
+                                'abpv.b', 'abpv.w', 
+                                'sbv.b', 'sbv.w')
 
-#save(AES_dens_models, file = 'AES_dens_models240501.RData')
+save(CONNECT_FORCE_models, file = 'Data/Models/CONNECT_FORCE_models_models.RData')
 
 ## plotting and diagnosing
 
-load('AES_dens_models240501.RData')
+load('FLOWER_FORCE_models.RData')
 
-cs.all <- lapply(AES_dens_models, custom_summary) %>% bind_rows(.id = 'id')
+cs.all <- lapply(CONNECT_FORCE_models, custom_summary) %>% bind_rows(.id = 'id')
 rownames(cs.all) <- NULL
 
-pp.all <- lapply(AES_dens_models, pp_hurdle) %>% bind_rows(.id = 'id')
+# to see which relationships were likely:
+cs.all %>% filter(pd > 0.9) %>% filter(Predictor != 'Intercept' & Predictor != 'hu_Intercept' & Predictor != 'SpeciesBombuspascuorum' & 
+                                         Predictor != 'hu_SpeciesBombuspascuorum') %>% arrange(Predictor)
 
-dens_plot_mu(AES_dens_models[['dwvb.h']], effects = 'SNH.p:Density') # Nor578 is an outlier for org farming
-dens_plot_hu(AES_dens_models[[3]], effects = 'Ann.fl.p:Density') # Nor578 is an outlier for org farming
-dens_plot_mu(AES_dens_models[[1]], effects = 'SNH.p:Density')
+# POSTERIOR CHECK
+pp.all <- lapply(FLOWER_FORCE_models, pp_hurdle)
+pp.all[['dwvb.b']]
 
+
+## PLOTTING EFFECTS
+mu_force <- lapply(FLOWER_FORCE_models, function(x) conditional_effects(x, dpar = 'mu')[[1]])
+mu_flower <- lapply(FLOWER_FORCE_models, function(x) conditional_effects(x, dpar = 'mu')[[2]])
+hu_force <- lapply(FLOWER_FORCE_models, function(x) conditional_effects(x, dpar = 'hu')[[1]])
+hu_flower <- lapply(FLOWER_FORCE_models, function(x) conditional_effects(x, dpar = 'hu')[[2]])
+
+
+plots <- lapply(mu_force, function(x) x %>% 
+                  ggplot(aes(effect1__, estimate__))+
+                  #geom_point(data = dat, aes(x = x, y = log(y), col = Flower2), alpha = 0.2, shape = 21) +
+                  geom_line(linewidth = 1)+
+                  geom_ribbon(aes(ymin = `lower__`, ymax = `upper__`, alpha = 0.3))+
+                  #annotation_custom(grob = grobTree(textGrob(paste0("pd = ", pd), x=0.65,  y=0.94, hjust=0,
+                  #                                           gp=gpar(col="black", fontsize=10, fontface=NULL))))+
+                  labs(x = 'Honey bee force', y = 'Viral load')+
+                  theme_bw(base_size = 16)+
+                  #scale_fill_manual(values = c('#f1c40f','#00806A', '#0a81f1'))+
+                  #scale_color_manual(values = c('#f1c40f','#00806A', '#0a81f1', '#f1c40f','#00806A', '#0a81f1'))+
+                  theme(panel.grid = element_blank(),  legend.position = 'none',
+                        plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"),
+                        plot.title = element_text(size = 16, hjust = 0.5)))
+plot_grid(plotlist = plots, ncol = 2, nrow = 4)
+
+plots <- lapply(mu_flower, function(x) x %>% 
+                  ggplot(aes(effect1__, estimate__))+
+                  #geom_point(data = dat, aes(x = x, y = log(y), col = Flower2), alpha = 0.2, shape = 21) +
+                  geom_line(linewidth = 1)+
+                  geom_ribbon(aes(ymin = `lower__`, ymax = `upper__`, alpha = 0.3))+
+                  #annotation_custom(grob = grobTree(textGrob(paste0("pd = ", pd), x=0.65,  y=0.94, hjust=0,
+                  #                                           gp=gpar(col="black", fontsize=10, fontface=NULL))))+
+                  labs(x = 'Flower cover', y = 'Viral load')+
+                  theme_bw(base_size = 16)+
+                  #scale_fill_manual(values = c('#f1c40f','#00806A', '#0a81f1'))+
+                  #scale_color_manual(values = c('#f1c40f','#00806A', '#0a81f1', '#f1c40f','#00806A', '#0a81f1'))+
+                  theme(panel.grid = element_blank(),  legend.position = 'none',
+                        plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"),
+                        plot.title = element_text(size = 16, hjust = 0.5)))
+plot_grid(plotlist = plots, ncol = 2, nrow = 4)
+
+plots <- lapply(hu_force, function(x) x %>% 
+                  ggplot(aes(effect1__, estimate__))+
+                  #geom_point(data = dat, aes(x = x, y = log(y), col = Flower2), alpha = 0.2, shape = 21) +
+                  geom_line(linewidth = 1)+
+                  geom_ribbon(aes(ymin = `lower__`, ymax = `upper__`, alpha = 0.3))+
+                  #annotation_custom(grob = grobTree(textGrob(paste0("pd = ", pd), x=0.65,  y=0.94, hjust=0,
+                  #                                           gp=gpar(col="black", fontsize=10, fontface=NULL))))+
+                  labs(x = 'Honey bee force', y = 'Viral load')+
+                  theme_bw(base_size = 16)+
+                  #scale_fill_manual(values = c('#f1c40f','#00806A', '#0a81f1'))+
+                  #scale_color_manual(values = c('#f1c40f','#00806A', '#0a81f1', '#f1c40f','#00806A', '#0a81f1'))+
+                  theme(panel.grid = element_blank(),  legend.position = 'none',
+                        plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"),
+                        plot.title = element_text(size = 16, hjust = 0.5)))
+plot_grid(plotlist = plots, ncol = 2, nrow = 4)
+
+plots <- lapply(hu_flower, function(x) x %>% 
+                  ggplot(aes(effect1__, estimate__))+
+                  #geom_point(data = dat, aes(x = x, y = log(y), col = Flower2), alpha = 0.2, shape = 21) +
+                  geom_line(linewidth = 1)+
+                  geom_ribbon(aes(ymin = `lower__`, ymax = `upper__`, alpha = 0.3))+
+                  #annotation_custom(grob = grobTree(textGrob(paste0("pd = ", pd), x=0.65,  y=0.94, hjust=0,
+                  #                                           gp=gpar(col="black", fontsize=10, fontface=NULL))))+
+                  labs(x = 'Flower cover', y = 'Viral load')+
+                  theme_bw(base_size = 16)+
+                  #scale_fill_manual(values = c('#f1c40f','#00806A', '#0a81f1'))+
+                  #scale_color_manual(values = c('#f1c40f','#00806A', '#0a81f1', '#f1c40f','#00806A', '#0a81f1'))+
+                  theme(panel.grid = element_blank(),  legend.position = 'none',
+                        plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"),
+                        plot.title = element_text(size = 16, hjust = 0.5)))
+plot_grid(plotlist = plots, ncol = 2, nrow = 4)
+
+
+
+######################### OTHER STUFF, NOT SORTED OUT ############################
 
 library(bipartite)
 ex <- data %>% group_by(Species) %>% summarise(n = n()) %>% filter(n >2)
@@ -201,74 +281,202 @@ E(g)$width <- E(g)$weight*0.1
 plot(g, layout = layout_in_circle(g), edge.arrow.size = 0.5, vertex.label.color = 'black', vertex.label.cex = 0.8, vertex.frame.color = NULL)
 
 
-dwvb.h <- brm(bf(DWVB.abs ~ weighted.nested + Density + (1 |Site),
-                 hu ~ weighted.nested + Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+dwvb.h <- brm(bf(DWVB.abs ~ totalFC_h + totalHB_h + (1 |Site),
+                 hu ~ totalFC_h + totalHB_h + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-dwvb.b <- brm(bf(DWVB.abs ~ weighted.nested + Density + Species + (1 |Site),
-                 hu ~ weighted.nested + Density + Species + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+dwvb.b <- brm(bf(DWVB.abs ~ totalFC_h + dwvb.hb.K + Species + (1 |Site),
+                 hu ~ totalFC_h + dwvb.hb.K + Species + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-dwvb.w <- brm(bf(DWVB.abs ~ weighted.nested + Density + (1 |Site) + (1|Species),
-                 hu ~ weighted.nested + Density +  (1 |Site) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
+dwvb.w <- brm(bf(DWVB.abs ~ totalFC_h + dwvb.hb.K + (1 |Site) + (1|Species),
+                 hu ~ totalFC_h + dwvb.hb.K +  (1 |Site) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-
-bqcv.h <- brm(bf(BQCV.abs ~ weighted.nested + Density +  (1 |Site),
-                 hu ~ weighted.nested + Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+bqcv.h <- brm(bf(BQCV.abs ~ totalFC_h + totalHB_h +  (1 |Site),
+                 hu ~ totalFC_h + totalHB_h + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-bqcv.b <- brm(bf(BQCV.abs ~ weighted.nested + Density +  (1 |Site),
-                 hu ~ weighted.nested + Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+bqcv.b <- brm(bf(BQCV.abs ~ totalFC_h + bqcv.hb.K +  Species + (1 |Site),
+                 hu ~ totalFC_h + bqcv.hb.K + Species + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-bqcv.w <- brm(bf(BQCV.abs ~ weighted.nested + Density + (1 |Site) + (1|Genus),
-                 hu ~ weighted.nested + Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
-                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-
-abpv.h <- brm(bf(ABPV.abs ~ weighted.nested * Density +  (1 |Site),
-                 hu ~ weighted.nested + Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
-                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-abpv.b <- brm(bf(ABPV.abs ~ weighted.nested + Density +  (1 |Site),
-                 hu ~ weighted.nested + Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
-                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-abpv.w <- brm(bf(ABPV.abs ~ weighted.nested + Density + (1 |Site) + (1|Genus),
-                 hu ~ weighted.nested + Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
+bqcv.w <- brm(bf(BQCV.abs ~ totalFC_h + bqcv.hb.K + (1 |Site) + (1|Species),
+                 hu ~ totalFC_h + bqcv.hb.K +  (1 |Site) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
                 c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b')), sample_prior = TRUE)
 
-sbv.h <- brm(bf(SBV.abs ~ weighted.nested + Density +  (1 |Site),
-                hu ~ weighted.nested + Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+abpv.h <- brm(bf(ABPV.abs ~ totalFC_h + totalHB_h +  (1 |Site),
+                 hu ~ totalFC_h + totalHB_h + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+abpv.b <- brm(bf(ABPV.abs ~ totalFC_h + abpv.hb.K +  Species + (1 |Site),
+                 hu ~ totalFC_h + abpv.hb.K + Species + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+abpv.w <- brm(bf(ABPV.abs ~ totalFC_h + abpv.hb.K +(1 |Site) + (1|Species),
+                 hu ~ totalFC_h + abpv.hb.K +  (1 |Site) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+
+sbv.h <- brm(bf(SBV.abs ~ totalFC_h + totalHB_h +  (1 |Site),
+                hu ~ totalFC_h + totalHB_h + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-sbv.b <- brm(bf(SBV.abs ~ weighted.nested + Density +  (1 |Site),
-                hu ~ weighted.nested + Density + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+sbv.b <- brm(bf(SBV.abs ~ totalFC_h + sbv.hb.K +  Species + (1 |Site),
+                hu ~ totalFC_h + sbv.hb.K + Species + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
-sbv.w <- brm(bf(SBV.abs ~ weighted.nested + Density + (1 |Site) + (1|Genus),
-                hu ~ weighted.nested + Density +  (1 |Site) + (1|Genus)), family = hurdle_lognormal(), data = data.wb, prior = 
+sbv.w <- brm(bf(SBV.abs ~ totalFC_h + sbv.hb.K + (1 |Site) + (1|Species),
+                hu ~ totalFC_h + sbv.hb.K +  (1 |Site) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
 
-SH_dens_models <- list(dwvb.h, dwvb.b, dwvb.w, 
+Kat_fl_force_models <- list(dwvb.h, dwvb.b, dwvb.w, 
                         bqcv.h, bqcv.b, bqcv.w, 
                         abpv.h, abpv.b, abpv.w, 
                         sbv.h, sbv.b, sbv.w)
 
-names(SH_dens_models) <- c('dwvb.h', 'dwvb.b', 'dwvb.w', 
+names(Kat_fl_force_models) <- c('dwvb.h', 'dwvb.b', 'dwvb.w', 
                             'bqcv.h', 'bqcv.b', 'bqcv.w', 
                             'abpv.h', 'abpv.b', 'abpv.w', 
                             'sbv.h', 'sbv.b', 'sbv.w')
 
-cs.all <- lapply(SH_dens_models, custom_summary) %>% bind_rows(.id = 'id')
+pairs(bqcv.b)
+
+save(FL_dens_models, file = 'C:/Users/patry/OneDrive/PhD/tralala/Pathogens-Networks/Data/Models/FL_dens_mod.RData')
+save(FL_abu_models, file = 'C:/Users/patry/OneDrive/PhD/tralala/Pathogens-Networks/Data/Models/FL_abu_mod.RData')
+save(FL_force_models, file = 'C:/Users/patry/OneDrive/PhD/tralala/Pathogens-Networks/Data/Models/FL_force_mod.RData')
+save(FL_forceNI_models, file = 'C:/Users/patry/OneDrive/PhD/tralala/Pathogens-Networks/Data/Models/FL_force_mod.RData')
+save(nest_forceNI_models, file = 'C:/Users/patry/OneDrive/PhD/tralala/Pathogens-Networks/Data/Models/nest_forceNI_models.RData')
+save(con_forceNI_models, file = 'C:/Users/patry/OneDrive/PhD/tralala/Pathogens-Networks/Data/Models/con_forceNI_models.RData')
+save(FL_forceNI_models2, file = 'C:/Users/patry/OneDrive/PhD/tralala/Pathogens-Networks/Data/Models/FL_force_mod2.RData')
+
+cs.all <- lapply(Kat_fl_force_models, custom_summary) %>% bind_rows(.id = 'id')
 rownames(cs.all) <- NULL
+cs.all %>% filter(pd > .9) %>% filter(Predictor != 'Intercept' & Predictor != 'hu_Intercept' & 
+                                        Predictor != 'SpeciesBombuspascuorum' & Predictor != 'hu_SpeciesBombuspascuorum') %>% arrange(pd)
 
-pp.all <- lapply(SH_dens_models, pp_hurdle) %>% bind_rows(.id = 'id')
+cs.all_Pat <- lapply(FL_forceNI_models2, custom_summary) %>% bind_rows(.id = 'id')
+rownames(cs.all_Pat) <- NULL
+hm <- cs.all_Pat %>% filter(pd > .9) %>% filter(Predictor != 'Intercept' & Predictor != 'hu_Intercept' & Predictor != 'SpeciesBombuspascuorum' & 
+                                            Predictor != 'hu_SpeciesBombuspascuorum') %>% arrange(pd)
 
-dens_plot_mu(SH_dens_models[[12]], effects = 'SH:Density') 
+conditional_effects(FL_forceNI_models2[['sbv.b']], dpar = 'hu')
+
+SpeciesBombuspascuorum
+plot(data$totalFC_h ~ data$dwvb.hb.K)
+
+Kat_only_wb <- list(dwvb.b, dwvb.w, 
+                            bqcv.b, bqcv.w, 
+                            abpv.b, abpv.w, 
+                            sbv.b, sbv.w)
+e <- conditional_effects(dwvb.w, dpar = 'mu')
+
+mu_force <- lapply(Kat_only_wb, function(x) conditional_effects(x, dpar = 'mu')[[2]])
+mu_flower <- lapply(Kat_only_wb, function(x) conditional_effects(x, dpar = 'mu')[[1]])
+
+
+plots <- lapply(mu_force, function(x) x %>% 
+               ggplot(aes(effect1__, estimate__))+
+               #geom_point(data = dat, aes(x = x, y = log(y), col = Flower2), alpha = 0.2, shape = 21) +
+               geom_line(linewidth = 1)+
+               geom_ribbon(aes(ymin = `lower__`, ymax = `upper__`, alpha = 0.3))+
+               #annotation_custom(grob = grobTree(textGrob(paste0("pd = ", pd), x=0.65,  y=0.94, hjust=0,
+               #                                           gp=gpar(col="black", fontsize=10, fontface=NULL))))+
+               labs(x = 'Honey bee force', y = 'Viral load')+
+               theme_bw(base_size = 16)+
+               #scale_fill_manual(values = c('#f1c40f','#00806A', '#0a81f1'))+
+               #scale_color_manual(values = c('#f1c40f','#00806A', '#0a81f1', '#f1c40f','#00806A', '#0a81f1'))+
+               theme(panel.grid = element_blank(),  legend.position = 'none',
+                     plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"),
+                     plot.title = element_text(size = 16, hjust = 0.5)))
+plot_grid(plotlist = plots, ncol = 2, nrow = 4)
+
+plots <- lapply(mu_flower, function(x) x %>% 
+                  ggplot(aes(effect1__, estimate__))+
+                  #geom_point(data = dat, aes(x = x, y = log(y), col = Flower2), alpha = 0.2, shape = 21) +
+                  geom_line(linewidth = 1)+
+                  geom_ribbon(aes(ymin = `lower__`, ymax = `upper__`, alpha = 0.3))+
+                  #annotation_custom(grob = grobTree(textGrob(paste0("pd = ", pd), x=0.65,  y=0.94, hjust=0,
+                  #                                           gp=gpar(col="black", fontsize=10, fontface=NULL))))+
+                  labs(x = 'Flower cover', y = 'Viral load')+
+                  theme_bw(base_size = 16)+
+                  #scale_fill_manual(values = c('#f1c40f','#00806A', '#0a81f1'))+
+                  #scale_color_manual(values = c('#f1c40f','#00806A', '#0a81f1', '#f1c40f','#00806A', '#0a81f1'))+
+                  theme(panel.grid = element_blank(),  legend.position = 'none',
+                        plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"),
+                        plot.title = element_text(size = 16, hjust = 0.5)))
+plot_grid(plotlist = plots, ncol = 2, nrow = 4)
+
+
+hu_force <- lapply(Kat_only_wb, function(x) conditional_effects(x, dpar = 'hu')[[2]])
+hu_flower <- lapply(Kat_only_wb, function(x) conditional_effects(x, dpar = 'hu')[[1]])
+
+
+plots <- lapply(hu_force, function(x) x %>% 
+                  ggplot(aes(effect1__, estimate__))+
+                  #geom_point(data = dat, aes(x = x, y = log(y), col = Flower2), alpha = 0.2, shape = 21) +
+                  geom_line(linewidth = 1)+
+                  geom_ribbon(aes(ymin = `lower__`, ymax = `upper__`, alpha = 0.3))+
+                  #annotation_custom(grob = grobTree(textGrob(paste0("pd = ", pd), x=0.65,  y=0.94, hjust=0,
+                  #                                           gp=gpar(col="black", fontsize=10, fontface=NULL))))+
+                  labs(x = 'Honey bee force', y = 'Viral load')+
+                  theme_bw(base_size = 16)+
+                  #scale_fill_manual(values = c('#f1c40f','#00806A', '#0a81f1'))+
+                  #scale_color_manual(values = c('#f1c40f','#00806A', '#0a81f1', '#f1c40f','#00806A', '#0a81f1'))+
+                  theme(panel.grid = element_blank(),  legend.position = 'none',
+                        plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"),
+                        plot.title = element_text(size = 16, hjust = 0.5)))
+plot_grid(plotlist = plots, ncol = 2, nrow = 4)
+
+plots <- lapply(hu_flower, function(x) x %>% 
+                  ggplot(aes(effect1__, estimate__))+
+                  #geom_point(data = dat, aes(x = x, y = log(y), col = Flower2), alpha = 0.2, shape = 21) +
+                  geom_line(linewidth = 1)+
+                  geom_ribbon(aes(ymin = `lower__`, ymax = `upper__`, alpha = 0.3))+
+                  #annotation_custom(grob = grobTree(textGrob(paste0("pd = ", pd), x=0.65,  y=0.94, hjust=0,
+                  #                                           gp=gpar(col="black", fontsize=10, fontface=NULL))))+
+                  labs(x = 'Flower cover', y = 'Viral load')+
+                  theme_bw(base_size = 16)+
+                  #scale_fill_manual(values = c('#f1c40f','#00806A', '#0a81f1'))+
+                  #scale_color_manual(values = c('#f1c40f','#00806A', '#0a81f1', '#f1c40f','#00806A', '#0a81f1'))+
+                  theme(panel.grid = element_blank(),  legend.position = 'none',
+                        plot.margin = unit(c(0.01, 0.01, 0.01, 0.01), "cm"),
+                        plot.title = element_text(size = 16, hjust = 0.5)))
+plot_grid(plotlist = plots, ncol = 2, nrow = 4)
+
+pp.all <- lapply(FL_forceNI_models2, pp_hurdle)
+pp.all[[12]] #+ coord_cartesian(xlim = c(0, 6))
+
+conditional_effects(FL_forceNI_models2[['sbv.b']], effects = 'sum.fl', dpar = 'mu')
+conditional_effects(FL_forceNI_models2[['dwvb.b']], effects = 'dwvb.hb.f', dpar = 'mu')
+
+
+
+
+
+
+
+dens_plot_mu(SH_dens_models[[4]], effects = 'sum.fl:Density') 
+
+hm <- lapply(FL_abu_models, function(x) force_plot(x, effects = 'sum.hb:sum.fl'))
+plot_grid(plotlist = hm, align = 'vh',nrow = 4, ncol = 3)
+
+conditional_effects(FL_forceNI_models[[2]], effects = 'dwvb.hb.f', dpar = 'mu')
+conditional_effects(FL_forceNI_models[[6]], effects = 'bqcv.hb.f', dpar = 'mu')
+conditional_effects(FL_forceNI_models[[9]], effects = 'abpv.hb.f', dpar = 'mu')
+conditional_effects(FL_forceNI_models[[12]], effects = 'sbv.hb.f', dpar = 'mu')
+conditional_effects(FL_forceNI_models[[12]], effects = 'weighted', dpar = 'mu')
+force_plot_hu(FL_force_models[[6]], effects = 'bqcv.hb.f:sum.fl')
+force_plot_hu(FL_force_models[[9]], effects = 'abpv.hb.f:sum.fl')
+force_plot_hu(FL_force_models[[11]], effects = 'sbv.hb.f:sum.fl')
+conditional_effects(nest_forceNI_models[[12]], effects = 'weighted.nested', dpar = 'mu')
+conditional_effects(nest_forceNI_models[[1]], effects = 'weighted.nested', dpar = 'hu')
+
+hm_hu <- lapply(FL_abu_models, function(x) force_plot_hu(x, effects = 'sum.hb:sum.fl'))
+plot_grid(plotlist = hm_hu, align = 'vh',nrow = 4, ncol = 3)
+
 dens_plot_hu(SH_dens_models[[11]], effects = 'SH') 
 
 conditional_effects(SH_dens_models[[11]], dpar = 'hu')
@@ -298,11 +506,56 @@ library(lme4)
 library(glmmTMB)
 library(DHARMa)
 library(car)
+library(performance)
+library(effects)
+library(splines)
 
-net <- data %>% distinct(Site, connectance, niche.overlap.HL, `weighted.nested`, Density, SH, flcv.m)
+net <- data %>% distinct(Site, connectance, niche.overlap.HL, `weighted.nested`, Density, SH, sum.fl, sum.hb, totalFC_h, FL_per_agr, totalHB, HB_per_agr)
 
-m <- lm(`weighted.nested` ~ Density + SH, net)
-m <- lm(connectance ~ Density + flcv.m, net)
+m <- lm(connectance ~ Density + FL_per_agr, net)
+m <- lm(weighted.nested ~ Density + FL_per_agr, net)
+m <- lm(log(niche.overlap.HL+1) ~ Density + FL_per_agr, net)
+m <- lm(log(sum.hb+1) ~ Density + FL_per_agr, net)
+m <- lm(log(totalHB+1) ~ Density + FL_per_agr, net)
+
+plot(net$totalHB ~ net$FL_per_agr)
+plot(net$sum.hb ~ net$sum.fl)
 summary(m)
 DHARMa::testDispersion(m)
 plot(so <- simulateResiduals(m))
+
+plot(allEffects(m))
+hist(log(net$connectance))
+
+dwvb. <- glmer(dwvb ~ sum.fl + sum.hb + (1 |Site), family = 'binomial', data = data.hb)
+dwvb. <- glmer(dwvb ~ sum.fl + dwvb.hb.f + Species + (1 |Site), family = 'binomial', data = data.bb)
+dwvb. <- glmer(abpv ~ sum.fl + abpv.hb.f + Species + (1 |Site), family = 'binomial', data = data.bb)
+summary(dwvb.)
+vif(dwvb.)
+DHARMa::testDispersion(dwvb.)
+plot(so <- simulateResiduals(dwvb.))
+plot(allEffects(dwvb.))
+
+
+dwvb.b.f <- glmmTMB(log(DWVB.abs) ~ sum.fl + dwvb.hb.f + Species + (1 |Site), data = data.bb[data.bb$DWVB.abs > 0,])
+dwvb.b.f <- glmmTMB(log(BQCV.abs) ~ sum.fl  + bqcv.hb.f + Species + (1 |Site), data = data.bb[data.bb$BQCV.abs > 0,])
+dwvb.b.f <- glmmTMB(log(ABPV.abs) ~ sum.fl + abpv.hb.f + Species + (1 |Site), data = data.bb[data.bb$ABPV.abs > 0,])
+dwvb.b.f <- glmmTMB(log(SBV.abs) ~ sum.fl + Species + (1 |Site), data = data.bb[data.bb$SBV.abs > 0,])
+summary(dwvb.b.f)
+DHARMa::testDispersion(dwvb.b.f)
+plot(so <- simulateResiduals(dwvb.b.f))            
+check_collinearity(dwvb.b.f)
+plot(allEffects(dwvb.b.f))
+
+dwvb.h <- brm(bf(DWVB.abs ~ weighted.nested + Density + (1 |Site),
+                 hu ~ weighted.nested + Density + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+dwvb.b <- brm(bf(DWVB.abs ~ weighted.nested + Density + Species + (1 |Site),
+                 hu ~ weighted.nested + Density + Species + (1 |Site)), family = hurdle_lognormal(), data = data.bb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)
+dwvb.w <- brm(bf(DWVB.abs ~ weighted.nested + Density + (1 |Site) + (1|Species),
+                 hu ~ weighted.nested + Density +  (1 |Site) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
+                c(prior(normal(0,5), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b')), sample_prior = TRUE)

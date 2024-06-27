@@ -10,10 +10,10 @@ distinct(fl.cv, Transect_type) # the different habitat types
 
 # assigning the habitat types AES labels
 hm <- data.frame(Transect_type = distinct(fl.cv, Transect_type),
-                 Transect_type2 = c('Other_AUM', 'Flower_fieBS11', 'Flower_fieBS12', 'Flower_fieBS2', 'Fallow', 'Grassland','Crop', 'CropBV1', 'GrasslandBV1'),
+                 Transect_type2 = c('Other_AUM', 'Flower_fieBS11', 'Flower_fieBS12', 'Flower_fieBS2', 'Fallow', 'Grassland','Grassy_str', 'CropBV1', 'GrasslandBV1'),
                  Edge_only = c(0, 0, 0, 0, 0, 0, 1, 0, 0)) # when calculating area treat grassy strips as an edge
 hm2 <- data.frame(Transect_type = distinct(fl.cv, Transect_type),
-                  AES = c('SNH', 'Flower', 'Flower', 'Flower','SNH','SNH','SNH','Crop','Org.farm'))
+                  AES = c('SNH', 'Flower', 'Flower', 'Flower','SNH','SNH','SNH','Org.farm','SNH'))
 fl.cv2 <- fl.cv %>% mutate(Date = as.Date(Date, '%m/%d/%Y')) %>% group_by(Run, Site, Transect_type) %>% summarise(flcv.m = mean(Total_flower_cover_percentage), Date = max(Date)) %>% 
   left_join(hm, by = 'Transect_type') %>% left_join(hm2, by = 'Transect_type') %>% 
   mutate(Month = ifelse(Run ==1, 'June', ifelse(Run==2, 'July', 'August')))
@@ -22,71 +22,90 @@ fl.cv2 <- fl.cv %>% mutate(Date = as.Date(Date, '%m/%d/%Y')) %>% group_by(Run, S
 ggplot(fl.cv2, aes(Transect_type2, flcv.m, fill = as.factor(Run)))+
   geom_boxplot()
 
+ggplot(fl.cv2 %>% filter(Run == 2), aes(Transect_type2, flcv.m))+
+  geom_boxplot()
 
-load('Data/radii.RData')
-load('Data/landscape_metrics2022.RData')
+
+load('Data/240617_landuse2022.RData')
+load('Data/240617landscape_metrics2022.RData')
 
 ## CALCULATING TOTAL FLOWER COVER AREA (EXTRAPOLATION)
+#flower.AES <- fl.cv2 %>% filter(Run == 2) %>% group_by(AES, Transect_type2) %>% summarise(mean.flower = mean(flcv.m)) %>% group_by(AES) %>% summarise(mean.flower = mean(mean.flower)) %>% 
+#  pivot_wider(names_from = AES, values_from = mean.flower)
+flower_cover <- fl.cv2 %>% filter(Run == 2) %>% group_by(Site, Transect_type2, AES) %>% summarise(flower_mean = mean(flcv.m)) %>% 
+  group_by(Site, AES) %>% summarise(flower_mean = mean(flower_mean)) %>% pivot_wider(names_from = AES, values_from = flower_mean) %>% ungroup() %>%
+  mutate(Flower = ifelse(is.na(Flower), mean(Flower, na.rm = T), Flower),
+         Org.farm = ifelse(is.na(Org.farm), mean(Org.farm, na.rm = T), Org.farm),
+         SNH = ifelse(is.na(SNH), mean(SNH, na.rm = T), SNH))
+
+mean(flower_cover$Flower, na.rm = T)
+
+
+## CANNOT CALCULATE IT AT THE TRANSECT TYPE LEVEL BECAUSE GRASSY STRIPS ARE NOT MAPPED OUT COMPLETELY ##
+
+#flower_cover <- fl.cv2 %>% filter(Run == 2) %>% group_by(Site, Transect_type2) %>% summarise(flower_mean = mean(flcv.m))%>% 
+#  pivot_wider(names_from = Transect_type2, values_from = flower_mean) %>% 
+#  left_join(radii[['1000m']], by = 'Site') %>%
+#  mutate(Org_ex = CropBV1.x * CropBV1.y,
+#         Fl_BS11_ex = Flower_fieBS11.x * Flower_fieBS11.y,
+#         Fl_BS12_ex = Flower_fieBS12.x * Flower_fieBS12.y,
+#         Fl_BS2_ex = Flower_fieBS2.x * Flower_fieBS2.y,
+#         Fallow_ex = Fallow.x * Fallow.y,
+#         Other_AUM_ex = Other_AUM.x * Other_AUM.y,
+#         Grassy
+#  )
+
 
 # 500 m
-land500 <- radii[['500m']]
-fl.area500 <- land500 %>% pivot_longer(cols = Crop:Plantation,names_to = 'Transect_type2', values_to = 'area') %>% filter(Transect_type2 %in% unique(fl.cv2$Transect_type2)) %>%
-  right_join(fl.cv2, by = c('Site', 'Transect_type2')) %>% 
-  # extrapolating the flower cover to the habitat proportion of each habitat type except for grassy strips in 2000 m radius
-  mutate(flcv.area = ifelse(Edge_only == 0, ((flcv.m/100) * area)/0.2, NA)) %>%
-  left_join(Het.lm500 %>% dplyr::select(Site, starts_with('Edge')) %>% dplyr::select(!c(Edge.dens)) %>%
-              pivot_longer(cols = starts_with('Edge'), names_to = 'Transect_type2', values_to = 'Edge') %>%
-              mutate(Transect_type2 = gsub('Edge.', '', Transect_type2)), by = c('Site', 'Transect_type2')) %>%
-  # extrapolating the flower cover to length of the crop field edge (grassy strips) in 2000 m radius
-  mutate(flcv.edge = ifelse(Edge_only == 1, ((flcv.m/100) * (Edge*0.0001))/0.2, NA)) %>% 
-  mutate(flcv.edge = ifelse(is.na(Edge), NA, flcv.edge)) %>% mutate(flcv.area = ifelse(is.na(area), NA, flcv.area)) %>%
-  # summing up the flower cover of the area and the edge
-  mutate(flower.cover = ifelse(is.na(flcv.area), flcv.edge, flcv.area)) %>% drop_na(flower.cover)
+land500 <- subset(land.all, radius == '500m')
 
-land1000 <- radii[['1000m']] ## in 1000 m radius there are additional habitats: Allotments and BW1 so the pivoting changes a bit
-fl.area1000 <- land1000 %>% pivot_longer(cols = Allotments:Plantation,names_to = 'Transect_type2', values_to = 'area') %>% filter(Transect_type2 %in% unique(fl.cv2$Transect_type2)) %>%
-  right_join(fl.cv2, by = c('Site', 'Transect_type2')) %>% mutate(flcv.area = ifelse(Edge_only == 0, ((flcv.m/100) * area)/0.2, NA)) %>%
-  left_join(Het.lm1000 %>% dplyr::select(Site, starts_with('Edge')) %>%
-              pivot_longer(cols = starts_with('Edge'), names_to = 'Transect_type2', values_to = 'Edge') %>%
-              mutate(Transect_type2 = gsub('Edge.', '', Transect_type2)), by = c('Site', 'Transect_type2')) %>%
-  mutate(flcv.edge = ifelse(Edge_only == 1, ((flcv.m/100) * (Edge*0.0001))/0.2, NA)) %>% 
-  mutate(flcv.edge = ifelse(is.na(Edge), NA, flcv.edge)) %>% mutate(flcv.area = ifelse(is.na(area), NA, flcv.area)) %>%
-  mutate(flower.cover = ifelse(is.na(flcv.area), flcv.edge, flcv.area)) %>% drop_na(flower.cover)
+flower500 <- land500 %>% select(Site, Org.farm, Total.fl, SNH.nf) %>% 
+  rename(Org.farm.h = Org.farm) %>%
+  cbind(flower.AES) %>%
+  mutate(Org.fl = Org.farm.h * Org.farm,
+         Flower.fl = Total.fl * Flower,
+         SNH.fl = SNH.nf * SNH)%>%
+  select(Site, Org.fl, Flower.fl, SNH.fl)
 
-land1500 <- radii[['1500m']] ## before  pivot_longer(cols = Crop:Plantation,
-fl.area1500 <- land1500 %>% pivot_longer(cols = Allotments:Plantation,names_to = 'Transect_type2', values_to = 'area') %>% filter(Transect_type2 %in% unique(fl.cv2$Transect_type2)) %>%
-  right_join(fl.cv2, by = c('Site', 'Transect_type2')) %>% mutate(flcv.area = ifelse(Edge_only == 0, ((flcv.m/100) * area)/0.2, NA)) %>%
-  left_join(Het.lm1500 %>% dplyr::select(Site, starts_with('Edge')) %>%
-              pivot_longer(cols = starts_with('Edge'), names_to = 'Transect_type2', values_to = 'Edge') %>%
-              mutate(Transect_type2 = gsub('Edge.', '', Transect_type2)), by = c('Site', 'Transect_type2')) %>%
-  mutate(flcv.edge = ifelse(Edge_only == 1, ((flcv.m/100) * (Edge*0.0001))/0.2, NA)) %>% 
-  mutate(flcv.edge = ifelse(is.na(Edge), NA, flcv.edge)) %>% mutate(flcv.area = ifelse(is.na(area), NA, flcv.area)) %>%
-  mutate(flower.cover = ifelse(is.na(flcv.area), flcv.edge, flcv.area)) %>% drop_na(flower.cover)
+flower500$sum.fl <- rowSums(flower500[2:4], na.rm = T)
 
-land2000 <- radii[['2000m']]
-fl.area2000 <- land2000 %>% pivot_longer(cols = Allotments:Plantation,names_to = 'Transect_type2', values_to = 'area') %>% filter(Transect_type2 %in% unique(fl.cv2$Transect_type2)) %>%
-  right_join(fl.cv2, by = c('Site', 'Transect_type2')) %>% mutate(flcv.area = ifelse(Edge_only == 0, ((flcv.m/100) * area)/0.2, NA)) %>%
-  left_join(Het.lm2000 %>% dplyr::select(Site, starts_with('Edge')) %>% dplyr::select(!c(Edge.dens)) %>%
-              pivot_longer(cols = starts_with('Edge'), names_to = 'Transect_type2', values_to = 'Edge') %>%
-              mutate(Transect_type2 = gsub('Edge.', '', Transect_type2)), by = c('Site', 'Transect_type2')) %>%
-  mutate(flcv.edge = ifelse(Edge_only == 1, ((flcv.m/100) * (Edge*0.0001))/0.2, NA)) %>% 
-  mutate(flcv.edge = ifelse(is.na(Edge), NA, flcv.edge)) %>% mutate(flcv.area = ifelse(is.na(area), NA, flcv.area))%>%
-  mutate(flower.cover = ifelse(is.na(flcv.area), flcv.edge, flcv.area)) %>% drop_na(flower.cover)
 
-flower.extr <- list('500m' = fl.area500, '1000m' = fl.area1000, '1500m' = fl.area1500, '2000m' = fl.area2000)
-#save(flower.extr, file = 'Data/fl_cover_extr.RData')
+land1000 <- subset(land.all, radius == '1000m')
 
-dens <- read_csv('Data/density.csv')
+flower1000 <- land1000 %>% select(Site, Total.fl, Org.farm, SNH.nf, Crop) %>% 
+  rename(Org.farm.h = Org.farm, Total.fl.h = Total.fl, SNH.nf.h = SNH.nf) %>% left_join(flower_cover, by = 'Site') %>%
+  mutate(Org.fl = Org.farm.h * Org.farm/100,
+         Flower.fl = Total.fl.h * Flower/100,
+         SNH.fl = SNH.nf.h * SNH/100)
+flower1000$sum.fl <- rowSums(flower100_AES[9:11], na.rm = T)
+flower1000$FL_per_agr <- with(flower100_AES, sum.fl/(Org.farm.h + SNH.nf.h + Total.fl.h + Crop))
 
+
+### hb abundance
 hb.ab <- read_csv('Data/hb_abundance2022.csv') %>% rename(Date = date, Site = Landscape_ID, Transect_type = Transect_tpe) %>% mutate(Date = as.Date(Date, '%m/%d/%Y')) %>% group_by(Run, Site, Transect_type) %>% summarise(hb.m = mean(Honeybee), Date = max(Date)) %>% 
-  left_join(hm, by = 'Transect_type') %>% left_join(hm2, by = 'Transect_type') %>% mutate(Month = ifelse(Run ==1, 'June', ifelse(Run==2, 'July', 'August'))) %>%
-  mutate(hb.m = round(hb.m, digits = 2)) %>% left_join(dens, by = 'Site')
+  left_join(hm, by = 'Transect_type') %>% left_join(hm2, by = 'Transect_type') %>% mutate(Month = ifelse(Run ==1, 'June', ifelse(Run==2, 'July', 'August'))) %>% mutate(AES = ifelse(Transect_type == 'grassland', 'SNH', AES), Transect_type2 = ifelse(Transect_type == 'grassland', 'grassland', Transect_type2))
+hb.ab2 <- hb.ab %>% filter(Run == 2) %>% group_by(Transect_type2, Site, AES) %>% summarise(hb.m = mean(hb.m)) %>% group_by(Site, AES) %>%
+  summarise(hb.m = mean(hb.m)) %>% pivot_wider(names_from = AES, values_from = hb.m) %>% ungroup() %>%
+  mutate(Flower = ifelse(is.na(Flower), mean(Flower, na.rm = T), Flower),
+         Org.farm = ifelse(is.na(Org.farm), mean(Org.farm, na.rm = T), Org.farm),
+         SNH = ifelse(is.na(SNH), mean(SNH, na.rm = T), SNH))
 
-ggplot(hb.ab, aes(as.factor(Run), log10(hb.m+1), fill = as.factor(Density)))+
-  geom_boxplot()
 
-ggplot(hb.ab %>% filter(Run != 1), aes(as.factor(Density), log10(hb.m+1), fill = as.factor(Density)))+
-  geom_boxplot()
+honeybees500 <- land500 %>% select(Site, Org.farm, Total.fl, SNH.nf) %>% 
+  rename(Org.farm.h = Org.farm) %>%
+  cbind(hb.ab2) %>%
+  mutate(Org.hb = Org.farm.h * Org.farm / 0.02,
+         Flower.hb = Total.fl * Flower / 0.02,
+         SNH.hb = SNH.nf * SNH / 0.02) %>%
+  select(Site, Org.hb, Flower.hb, SNH.hb)
 
-ggplot(hb.ab %>% filter(Run != 1), aes(Transect_type, log10(hb.m+1), fill = as.factor(Density)))+
-  geom_boxplot()
+honeybees500$sum.hb <- rowSums(honeybees500[2:4], na.rm = T)
+
+honeybees1000 <- land1000 %>% select(Site, Org.farm, Total.fl, SNH.nf, Crop) %>% 
+  rename(Org.farm.h = Org.farm) %>%
+  left_join(hb.ab2, by = 'Site') %>%
+  mutate(Org.hb = Org.farm.h * Org.farm / 0.02,
+         Flower.hb = Total.fl * Flower / 0.02,
+         SNH.hb = SNH.nf * SNH / 0.02) 
+honeybees1000$sum.hb <- rowSums(honeybees1000[9:11], na.rm = T)
+honeybees1000$HB_per_agr <- with(honeybees1000, sum.hb/(Org.farm.h + SNH.nf + Total.fl + Crop))
