@@ -6,8 +6,8 @@ library(tidyverse)
 # set_names() %>%
 #  map(~read_csv(.))
 
-r500 <- read_csv('Data/individuals2022_landuse_500m_fixed.csv')
-r1000 <- read_csv('Data/individuals2022_landuse_1km_fixed.csv')
+r500 <- read_csv('Data/Landuse_Combee2022_500m.csv')
+r1000 <- read_csv('Data/Landuse_Combee2022_1km.csv')
 radii.raw <- list(`500m` = r500, `1000m` = r1000)
 
 qgis_fun <- function(x) { x %>%
@@ -16,8 +16,9 @@ qgis_fun <- function(x) { x %>%
     summarise(sum=sum(area_ha)) %>%
     drop_na(Landscape3) %>%
     pivot_wider(names_from = Combi6, values_from = sum) %>%
-    replace(is.na(.), 0)%>%
-    rename(Site = Landscape3)
+    replace(is.na(.), 0) %>%
+    rename(Site = Landscape3) %>%
+    mutate(semi_natur = semi_natur + Grassy_str)
 }
 
 radii <- lapply(radii.raw, qgis_fun)

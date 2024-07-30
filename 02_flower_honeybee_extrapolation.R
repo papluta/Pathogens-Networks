@@ -4,6 +4,7 @@ library(ggplot2)
 library(tidyverse)
 
 fl.cv <- read_csv('Data/Flowercover2022.csv')
+source('01_landscape_processing.R')
 
 
 distinct(fl.cv, Transect_type) # the different habitat types
@@ -12,12 +13,9 @@ distinct(fl.cv, Transect_type) # the different habitat types
 hm <- data.frame(Transect_type = distinct(fl.cv, Transect_type),
                  Transect_type2 = c('Other_AUM', 'Flower_fieBS11', 'Flower_fieBS12', 'Flower_fieBS2', 'Fallow', 'semi_natur','semi_natur', 'CropBV1', 'semi_natur'))
 
-## not using this categorization in the end:
-hm2 <- data.frame(Transect_type = distinct(fl.cv, Transect_type),
-                  AES = c('SNH', 'Flower', 'Flower', 'Flower','SNH','SNH','SNH','Org.farm','SNH'))
 
 fl.cv2 <- fl.cv %>% mutate(Date = as.Date(Date, '%m/%d/%Y')) %>% group_by(Run, Site, Transect_type) %>% summarise(flcv.m = mean(Total_flower_cover_percentage), Date = max(Date)) %>% 
-  left_join(hm, by = 'Transect_type') %>% left_join(hm2, by = 'Transect_type') %>% 
+  left_join(hm, by = 'Transect_type') %>% 
   mutate(Month = ifelse(Run ==1, 'June', ifelse(Run==2, 'July', 'August')))
 
 
@@ -28,16 +26,8 @@ ggplot(fl.cv2 %>% filter(Run == 2), aes(Transect_type2, flcv.m))+
   geom_boxplot()
 
 
-land1000 <- read.csv('Data/Landuse_Combee2022_1km.csv')
-land1000_2 <- land1000 %>%
-  mutate(area_ha = area1/10000) %>% 
-  group_by(Landscape3,Combi6) %>%
-  summarise(sum=sum(area_ha)) %>%
-  drop_na(Landscape3) %>%
-  pivot_wider(names_from = Combi6, values_from = sum) %>%
-  replace(is.na(.), 0)%>%
-  rename(Site = Landscape3) %>%
-  mutate(semi_natur = semi_natur + Grassy_str)
+land1000 <- radii[['1000m']]
+
 
 ## CALCULATING TOTAL FLOWER COVER AREA (EXTRAPOLATION)
 
@@ -51,7 +41,7 @@ flower_cover1000 <- fl.cv2 %>% filter(Run == 2) %>% group_by(Site, Transect_type
          Fallow = ifelse(is.na(Fallow), mean(Fallow, na.rm = T), Fallow),
          CropBV1 = ifelse(is.na(CropBV1), mean(CropBV1, na.rm = T), CropBV1),
          semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur)) %>%
-  left_join(land1000_2, by = 'Site') %>% 
+  left_join(land1000, by = 'Site') %>% 
   #extrapolating (.x are the flower estimates, .y is the area in hectares)
   mutate(Org_ex = CropBV1.x * CropBV1.y/100,
          Fl_BS11_ex = Flower_fieBS11.x * Flower_fieBS11.y/100,
@@ -71,18 +61,7 @@ plot(density(flower_cover1000$FL_per_agr))
 dotchart(flower_cover1000$FL_per_agr, labels = flower_cover1000$Site)
 
 
-land500 <- read.csv('Data/Landuse_Combee2022_500m.csv')
-land500_2 <- land500 %>%
-  mutate(area_ha = area1/10000) %>% 
-  group_by(Landscape3,Combi6) %>%
-  summarise(sum=sum(area_ha)) %>%
-  drop_na(Landscape3) %>%
-  pivot_wider(names_from = Combi6, values_from = sum) %>%
-  replace(is.na(.), 0)%>%
-  rename(Site = Landscape3) %>%
-  mutate(semi_natur = semi_natur + Grassy_str)
-
-
+land500 <- radii[['500m']]
 
 
 ## CALCULATING TOTAL FLOWER COVER AREA (EXTRAPOLATION)
@@ -97,7 +76,7 @@ flower_cover500 <- fl.cv2 %>% filter(Run == 2) %>% group_by(Site, Transect_type2
          Fallow = ifelse(is.na(Fallow), mean(Fallow, na.rm = T), Fallow),
          CropBV1 = ifelse(is.na(CropBV1), mean(CropBV1, na.rm = T), CropBV1),
          semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur)) %>%
-  left_join(land500_2, by = 'Site') %>% 
+  left_join(land500, by = 'Site') %>% 
   #extrapolating (.x are the flower estimates, .y is the area in hectares)
   mutate(Org_ex = CropBV1.x * CropBV1.y/100,
          Fl_BS11_ex = Flower_fieBS11.x * Flower_fieBS11.y/100,
@@ -115,10 +94,16 @@ flower_cover500 <- fl.cv2 %>% filter(Run == 2) %>% group_by(Site, Transect_type2
 
 
 ### hb abundance
-hb.ab <- read_csv('Data/hb_abundance2022.csv') %>% rename(Date = date, Site = Landscape_ID, Transect_type = Transect_tpe) %>% mutate(Date = as.Date(Date, '%m/%d/%Y')) %>% group_by(Run, Site, Transect_type) %>% summarise(hb.m = mean(Honeybee), Date = max(Date)) %>% 
-  left_join(hm, by = 'Transect_type') %>% left_join(hm2, by = 'Transect_type') %>% mutate(AES = ifelse(Transect_type == 'grassland', 'semi_natur', AES), Transect_type2 = ifelse(Transect_type == 'grassland', 'semi_natur', Transect_type2))
-hb.ab2 <- hb.ab %>% filter(Run == 2) %>% group_by(Transect_type2, Site) %>% summarise(hb.m = mean(hb.m)) %>% 
-  pivot_wider(names_from = Transect_type2, values_from = hb.m) 
+trans <- read_csv('Data/Transects2022_20231110.csv') %>% filter(run == 2) %>% distinct(run, Landscape_ID, Transect_ID, Transect_tpe) %>% rename(Site = Landscape_ID, Transect_type = Transect_tpe, Run = run)
+
+hb.ab <- read_csv('Data/Transects2022_20231110.csv') %>% rename(Site = Landscape_ID, Transect_type = Transect_tpe, Run = run) %>% group_by(Run, Site, Bee_species, Transect_ID) %>% summarise(n = n()) %>% 
+  filter(Bee_species == 'Apis mellifera')
+
+hb.ab2 <- trans %>% left_join(hb.ab, by = join_by('Site', 'Transect_ID', 'Run')) %>% mutate(Bee_species = 'Apis mellifera', n = ifelse(is.na(n),0,n)) %>%
+  group_by(Site, Transect_type) %>% summarise(Hb.m = mean(n)) %>%
+  left_join(hm, by = 'Transect_type') %>% mutate(Transect_type2 = ifelse(Transect_type == 'grassland', 'semi_natur', Transect_type2)) %>%
+  mutate(Site = sub('Wm', 'WM', Site)) %>% select(-Transect_type) %>% group_by(Site, Transect_type2) %>% summarise(hb_mean = mean(Hb.m)) %>%
+  pivot_wider(names_from = Transect_type2, values_from = hb_mean)
 
 honeybees1000 <- hb.ab2 %>% ungroup() %>%
   mutate(Flower_fieBS2 = ifelse(is.na(Flower_fieBS2), mean(Flower_fieBS2, na.rm = T), Flower_fieBS2),
@@ -128,7 +113,7 @@ honeybees1000 <- hb.ab2 %>% ungroup() %>%
          Fallow = ifelse(is.na(Fallow), mean(Fallow, na.rm = T), Fallow),
          CropBV1 = ifelse(is.na(CropBV1), mean(CropBV1, na.rm = T), CropBV1),
          semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur)) %>%
-  left_join(land1000_2, by = 'Site') %>% 
+  left_join(land1000, by = 'Site') %>% 
   mutate(Org_ex = CropBV1.x * CropBV1.y/0.02,
          Fl_BS11_ex = Flower_fieBS11.x * Flower_fieBS11.y/0.02,
          Fl_BS12_ex = Flower_fieBS12.x * Flower_fieBS12.y/0.02,
@@ -156,7 +141,7 @@ honeybees500 <- hb.ab2 %>% ungroup() %>%
          Fallow = ifelse(is.na(Fallow), mean(Fallow, na.rm = T), Fallow),
          CropBV1 = ifelse(is.na(CropBV1), mean(CropBV1, na.rm = T), CropBV1),
          semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur)) %>%
-  left_join(land500_2, by = 'Site') %>% 
+  left_join(land500, by = 'Site') %>% 
   mutate(Org_ex = CropBV1.x * CropBV1.y/0.02,
          Fl_BS11_ex = Flower_fieBS11.x * Flower_fieBS11.y/0.02,
          Fl_BS12_ex = Flower_fieBS12.x * Flower_fieBS12.y/0.02,
@@ -171,6 +156,66 @@ honeybees500 <- hb.ab2 %>% ungroup() %>%
   mutate(HB_per_agr = sum.hb / (Crop + CropBV1.y + Flower_fieBS2.y + Flower_fieBS12.y + Flower_fieBS11.y + Fallow.y +
                                   Other_AUM.y + semi_natur.y)) %>%
   select(Site, Org_ex, ends_with('.ex'), sum.hb, HB_per_agr)
+
+
+bb.ab <- read_csv('Data/Transects2022_20231110.csv') %>% rename(Site = Landscape_ID, Transect_type = Transect_tpe, Run = run) %>% group_by(Run, Site, Bee_species, Transect_ID) %>% summarise(n = n()) %>% 
+  filter(Bee_species != '"Zweifl�gler"') %>%
+  mutate(Genus = sub(' .*', '', Bee_species)) %>% filter(Genus =='Bombus') %>% group_by(Run, Site, Transect_ID) %>%
+  summarise(n = n())
+
+bb.ab2 <- trans %>% left_join(bb.ab, by = join_by('Site', 'Transect_ID', 'Run')) %>% mutate(Bee_species = 'Bombus', n = ifelse(is.na(n),0,n)) %>%
+  group_by(Site, Transect_type) %>% summarise(Hb.m = mean(n)) %>%
+  left_join(hm, by = 'Transect_type') %>% mutate(Transect_type2 = ifelse(Transect_type == 'grassland', 'semi_natur', Transect_type2)) %>%
+  mutate(Site = sub('Wm', 'WM', Site)) %>% select(-Transect_type) %>% group_by(Site, Transect_type2) %>% summarise(hb_mean = mean(Hb.m)) %>%
+  pivot_wider(names_from = Transect_type2, values_from = hb_mean)
+
+bumblebees1000 <- bb.ab2 %>% ungroup() %>%
+  mutate(Flower_fieBS2 = ifelse(is.na(Flower_fieBS2), mean(Flower_fieBS2, na.rm = T), Flower_fieBS2),
+         Flower_fieBS12 = ifelse(is.na(Flower_fieBS12), mean(Flower_fieBS12, na.rm = T), Flower_fieBS12),
+         Flower_fieBS11 = ifelse(is.na(Flower_fieBS11), mean(Flower_fieBS11, na.rm = T), Flower_fieBS11),
+         Other_AUM = ifelse(is.na(Other_AUM), mean(Other_AUM, na.rm = T), Other_AUM),
+         Fallow = ifelse(is.na(Fallow), mean(Fallow, na.rm = T), Fallow),
+         CropBV1 = ifelse(is.na(CropBV1), mean(CropBV1, na.rm = T), CropBV1),
+         semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur)) %>%
+  left_join(land1000, by = 'Site') %>% 
+  mutate(Org_ex = CropBV1.x * CropBV1.y/0.02,
+         Fl_BS11_ex = Flower_fieBS11.x * Flower_fieBS11.y/0.02,
+         Fl_BS12_ex = Flower_fieBS12.x * Flower_fieBS12.y/0.02,
+         Fl_BS2_ex = Flower_fieBS2.x * Flower_fieBS2.y/0.02,
+         Fallow_ex = Fallow.x * Fallow.y/0.02,
+         Other_AUM_ex = Other_AUM.x * Other_AUM.y/0.02,
+         semi_natur_ex = semi_natur.x * semi_natur.y/0.02
+  ) %>%
+  mutate(sum.bb = Org_ex + Fl_BS11_ex + Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
+         SNH.ex = 0.5*Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
+         Ann.fl.ex = Fl_BS11_ex + 0.5*Fl_BS12_ex ) %>%
+  mutate(BB_per_agr = sum.bb / (Crop + CropBV1.y + Flower_fieBS2.y + Flower_fieBS12.y + Flower_fieBS11.y + Fallow.y +
+                                  Other_AUM.y + semi_natur.y)) %>%
+  select(Site, Org_ex, ends_with('.ex'), sum.bb, BB_per_agr)
+
+bumblebees500 <- bb.ab2 %>% ungroup() %>%
+  mutate(Flower_fieBS2 = ifelse(is.na(Flower_fieBS2), mean(Flower_fieBS2, na.rm = T), Flower_fieBS2),
+         Flower_fieBS12 = ifelse(is.na(Flower_fieBS12), mean(Flower_fieBS12, na.rm = T), Flower_fieBS12),
+         Flower_fieBS11 = ifelse(is.na(Flower_fieBS11), mean(Flower_fieBS11, na.rm = T), Flower_fieBS11),
+         Other_AUM = ifelse(is.na(Other_AUM), mean(Other_AUM, na.rm = T), Other_AUM),
+         Fallow = ifelse(is.na(Fallow), mean(Fallow, na.rm = T), Fallow),
+         CropBV1 = ifelse(is.na(CropBV1), mean(CropBV1, na.rm = T), CropBV1),
+         semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur)) %>%
+  left_join(land500, by = 'Site') %>% 
+  mutate(Org_ex = CropBV1.x * CropBV1.y/0.02,
+         Fl_BS11_ex = Flower_fieBS11.x * Flower_fieBS11.y/0.02,
+         Fl_BS12_ex = Flower_fieBS12.x * Flower_fieBS12.y/0.02,
+         Fl_BS2_ex = Flower_fieBS2.x * Flower_fieBS2.y/0.02,
+         Fallow_ex = Fallow.x * Fallow.y/0.02,
+         Other_AUM_ex = Other_AUM.x * Other_AUM.y/0.02,
+         semi_natur_ex = semi_natur.x * semi_natur.y/0.02
+  ) %>%
+  mutate(sum.bb = Org_ex + Fl_BS11_ex + Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
+         SNH.ex = 0.5*Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
+         Ann.fl.ex = Fl_BS11_ex + 0.5*Fl_BS12_ex ) %>%
+  mutate(BB_per_agr = sum.bb / (Crop + CropBV1.y + Flower_fieBS2.y + Flower_fieBS12.y + Flower_fieBS11.y + Fallow.y +
+                                  Other_AUM.y + semi_natur.y)) %>%
+  select(Site, Org_ex, ends_with('.ex'), sum.bb, BB_per_agr)
 
 ### different approach with pooling at the AES level
 

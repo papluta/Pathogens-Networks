@@ -10,15 +10,20 @@ hind <- read.csv('Data/hind_2022.csv') # honey bee pathogens
 bind <- read.csv('Data/bind_2022.csv') # B. lapidarius bee pathogens
 pind <- read.csv('Data/pind_2022.csv') # B. pascuorum pathogens - not finished!
 wind <- read.csv('Data/wind_2022.csv') # other wild bee pathogens
-wind.sp <- read.csv('Data/WIND_species.csv') %>% dplyr::select(Sample_ID, Species) # updated barcodes for wild bees
-load('Data/abs_pathogen240212.RData') # normalized absolute quantification
+q.norm <- read.csv('Data/abs_quant_parasites_2022.csv') # normalized absolute quantification
 dens <- read.csv('Data/density.csv') # which site is density high
-load('Data/240621network_parameters.RData')
-load('Data/240617_landuse2022.RData') 
-load('Data/240617landscape_metrics2022.RData')
+load('Data/networks_z.RData')
+#load('Data/240617_landuse2022.RData') 
+#load('Data/240617landscape_metrics2022.RData')
 
 
-wind <- wind %>% dplyr::select(-Species) %>% left_join(wind.sp, by = join_by('Sample.ID' == 'Sample_ID')) # updating the barcodes
+bb.load <- q.norm %>% filter(!grepl('H', Sample)) %>% filter(!grepl('S', Sample)) %>% mutate(Site = ifelse(grepl('B', Sample), sub('(B.*)','', Sample), sub('(P.*)','', Sample))) %>% group_by(Site) %>% summarise(
+  dwvb.bb.q = mean(DWVB.abs, na.rm = T),
+  bqcv.bb.q = mean(BQCV.abs, na.rm = T),
+  abpv.bb.q = mean(ABPV.abs, na.rm = T),
+  sbv.bb.q = mean(SBV.abs, na.rm = T),
+)
+bb.load[is.na(bb.load)] <- 0
 
 hb.load <- q.norm %>% filter(grepl('H', Sample)) %>% mutate(Site = sub('(H.*)','', Sample)) %>% group_by(Site) %>% summarise(
   dwvb.hb.q = mean(DWVB.abs, na.rm = T),
@@ -26,8 +31,8 @@ hb.load <- q.norm %>% filter(grepl('H', Sample)) %>% mutate(Site = sub('(H.*)','
   abpv.hb.q = mean(ABPV.abs, na.rm = T),
   sbv.hb.q = mean(SBV.abs, na.rm = T),
 )
-
 hb.load[is.na(hb.load)] <- 0
+
 q.norm[is.na(q.norm)] <- 0 # changing undetected Ct to 0
 
 ## cleaning up the molecular analysis
@@ -71,36 +76,46 @@ hb.prev <- hind2 %>% group_by(Site) %>% summarise(dwvb.hb = mean(dwvb),
                                                   abpv.hb = mean(abpv),
                                                   sbv.hb = mean(sbv))
 
+bb.prev <- bind2 %>% group_by(Site) %>% summarise(dwvb.bb = mean(dwvb),
+                                                  bqcv.bb = mean(bqcv),
+                                                  abpv.bb = mean(abpv),
+                                                  sbv.bb = mean(sbv))
+
 data <- all2 %>% rename(Sample = Sample.ID) %>% left_join(q.norm, by = 'Sample') %>% 
   left_join(dens, by = 'Site') %>%
   #left_join(land.all %>% filter(radius == '1000m'), by = 'Site') %>%
   #mutate(across(Ann.fl:AES, function(x) round(x / ((3.14 * 1000^2)/10000), digits = 3), .names = '{col}.p')) %>%
-  left_join(land_metrics1000, by = 'Site') %>%
+  #left_join(land_metrics1000, by = 'Site') %>%
   mutate(Density = as.factor(Density)) %>%
   filter(Species != "" & Species != 'NA' & Species != 'Sipha flava' & Species != 'Bombus sylvarum' & Species != 'Oedogonium sp. BN3'
          & Species != 'Megalocoleus molliculus' & Species != 'Orasema occidentalis' & Species != 'Orisarma intermedium' & Species != 'Lindenius albilabris') %>%
-  left_join(network_parameters2, by = 'Site') %>% rename(weighted.nested = `weighted NODF`) %>%
+  left_join(networks.z3, by = 'Site') %>% 
   #left_join(fl.cv2, by = 'Site') %>%
-  left_join(network_parameters_species3, by = join_by('Site', 'Species')) %>%
-  left_join(flower_cover500 %>% select(Site, sum.fl, FL_per_agr), by = 'Site') %>% left_join(honeybees500%>% select(Site, sum.hb, HB_per_agr), by = 'Site') %>%
-  left_join(hb.prev, by = 'Site') %>% left_join(hb.load, by = 'Site') %>% mutate(HB_per_agr = log(HB_per_agr+1), FL_per_agr = FL_per_agr * 100) %>%
+  #left_join(network_parameters_species3, by = join_by('Site', 'Species')) %>%
+  left_join(flower_cover500 %>% select(Site, sum.fl, FL_per_agr), by = 'Site') %>% 
+  left_join(honeybees500 %>% select(Site, sum.hb, HB_per_agr), by = 'Site') %>%
+  left_join(hb.prev, by = 'Site') %>% left_join(hb.load, by = 'Site') %>% 
   # calculating infection exposure 1st way: prevalence * abundance
-  mutate(across(dwvb.hb:sbv.hb, function(x) x * HB_per_agr, .names = '{col}.agr')) %>%
+  mutate(across(dwvb.hb:sbv.hb, function(x) log(x * HB_per_agr + 1), .names = '{col}.agr')) %>%
   # calculating infection exposure 2st way: prevalence * abundance * viral load
-  mutate(dwvb.f = log10(dwvb.hb * HB_per_agr * dwvb.hb.q + 1),
-         bqcv.f = log10(bqcv.hb * HB_per_agr * bqcv.hb.q + 1),
-         abpv.f = log10(abpv.hb * HB_per_agr * abpv.hb.q + 1),
-         sbv.f = log10(sbv.hb * HB_per_agr * sbv.hb.q + 1)) %>%
-  mutate(dwvb.f = dwvb.hb * HB_per_agr * log10(dwvb.hb.q+1),
-         bqcv.f = bqcv.hb * HB_per_agr * log10(bqcv.hb.q+1),
-         abpv.f = abpv.hb * HB_per_agr * log10(abpv.hb.q+1),
-         sbv.f = sbv.hb * HB_per_agr * log10(sbv.hb.q+1)) #%>% filter(Site != 'WM630')
+  mutate(dwvb.f = log(dwvb.hb * HB_per_agr * dwvb.hb.q + 1),
+         bqcv.f = log(bqcv.hb * HB_per_agr * bqcv.hb.q+1),
+         abpv.f = log(abpv.hb * HB_per_agr * abpv.hb.q+1),
+         sbv.f = log(sbv.hb * HB_per_agr * sbv.hb.q+1)) %>% 
+  #filter(Site != 'WM630') %>%
+  mutate(HB_per_agr = log(HB_per_agr+1), FL_per_agr = FL_per_agr * 100) %>%
+  left_join(bumblebees500 %>% select(Site, sum.bb, BB_per_agr), by = 'Site') %>% left_join(bb.load, by = 'Site') %>% left_join(bb.prev, by = 'Site') %>%
+  mutate(dwvb.bb.f = log(dwvb.bb * BB_per_agr * dwvb.bb.q + 1),
+         bqcv.bb.f = log(bqcv.bb * BB_per_agr * bqcv.bb.q+1),
+         abpv.bb.f = log(abpv.bb * BB_per_agr * abpv.bb.q+1),
+         sbv.bb.f = log(sbv.bb * BB_per_agr * sbv.bb.q+1)) %>%
+  mutate(Closeness.z = ifelse(is.na(Closeness.z), -3, Closeness.z))
   
 
-dif <- data %>% select(Site, Species, dwvb) %>% full_join(network_parameters_species3, by = join_by('Site', 'Species'))
+#dif <- data %>% select(Site, Species, dwvb) %>% full_join(network_parameters_species3, by = join_by('Site', 'Species'))
 
-no.match.Pat <- subset(dif, is.na(closeness))
-no.match.Kat <- subset(dif, is.na(dwvb))
+#no.match.Pat <- subset(dif, is.na(closeness))
+#no.match.Kat <- subset(dif, is.na(dwvb))
 
   
 library(cowplot)
