@@ -3,7 +3,7 @@ library(readr)
 library(dplyr)
 library(tidyr)
 library(cowplot)
-source('02_flower_cover.R')
+source('02_flower_honeybee_extrapolation.R')
 
 ### DATA ###
 hind <- read.csv('Data/hind_2022.csv') # honey bee pathogens
