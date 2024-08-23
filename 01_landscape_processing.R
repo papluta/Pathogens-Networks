@@ -6,19 +6,22 @@ library(tidyverse)
 # set_names() %>%
 #  map(~read_csv(.))
 
-r500 <- read_csv('Data/Landuse_Combee2022_500m.csv')
-r1000 <- read_csv('Data/Landuse_Combee2022_1km.csv')
+r500 <- read_csv('Data/Landuse_Combee2022_500m_updated.csv')
+r1000 <- read_csv('Data/Landuse_Combee2022_1km_updated.csv')
 radii.raw <- list(`500m` = r500, `1000m` = r1000)
 
 qgis_fun <- function(x) { x %>%
     mutate(area_ha = area1/10000) %>% 
-    group_by(Landscape3,Combi6) %>%
+    mutate(Landscape3 = sub('Wm', 'WM', Landscape3)) %>%
+    group_by(Landscape3,Combi9) %>%
     summarise(sum=sum(area_ha)) %>%
     drop_na(Landscape3) %>%
-    pivot_wider(names_from = Combi6, values_from = sum) %>%
+    pivot_wider(names_from = Combi9, values_from = sum) %>%
     replace(is.na(.), 0) %>%
     rename(Site = Landscape3) %>%
-    mutate(semi_natur = semi_natur + Grassy_str)
+    mutate(semi_natur = semi_natur + Grassy_str) %>%
+    select(-Grassy_str) %>%
+    rename(Grassy_str = Fieldedge)
 }
 
 radii <- lapply(radii.raw, qgis_fun)
@@ -29,6 +32,7 @@ radii <- lapply(radii.raw, qgis_fun)
 #names(radii) <- nnn
 
 #save(radii, file = "Data/radii.RData")
+
 
 land_fun <- function(x){ x %>% 
     mutate(SNH = semi_natur + Fallow + Other_AUM + Flower_fieBS2 + Flower_fieBS12/2 + Grassy_str,
@@ -42,7 +46,7 @@ land_fun <- function(x){ x %>%
     dplyr::select(Site, Ann.fl, SNH, Org.farm, SNH.nf, Total.fl, Grassland, Forest, Urban, Crop, AES)
 }
 
-land.all <- radii %>% lapply(land_fun) %>% 
-  bind_rows(.id = "radius")
+#land.all <- radii %>% lapply(land_fun) %>% 
+#  bind_rows(.id = "radius")
 
 #save(land.all, file = 'Data/240617_landuse2022.RData')

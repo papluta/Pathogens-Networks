@@ -83,9 +83,12 @@ connectance <- lapply(network_parameters, function(x) x[1]) %>% bind_rows(.id = 
 
 # closeness centrality for honey bees
 network_parameters_species <- adj.matrix %>% lapply(specieslevel, index = 'closeness', level = 'higher')
+network_degree_species <- adj.matrix %>% lapply(specieslevel, index = 'normalised degree', level = 'higher')
 
 centrality_Apis <- lapply(network_parameters_species, function(x) x %>% rownames_to_column(var = 'Species') %>%
                                         filter(Species == 'Apis mellifera'))
+degree_Apis <- lapply(network_degree_species, function(x) x %>% rownames_to_column(var = 'Species') %>%
+                            filter(Species == 'Apis mellifera'))
 #centrality_BL <- lapply(network_parameters_species, function(x) x %>% rownames_to_column(var = 'Species') %>%
 #                                    filter(Species == 'Bombus lapidarius'))
 #centrality_BP <- lapply(network_parameters_species, function(x) x %>% rownames_to_column(var = 'Species') %>%
@@ -108,12 +111,10 @@ names(network_closeness_null) <- unique(pol2$Landscape_ID)
 Apis_null <- lapply(network_closeness_null, function(x) lapply(x, function(y) rownames_to_column(y, var = 'Species') %>%
          filter(Species == 'Apis mellifera')) %>% bind_rows())
 
-
-
 closeness.zscore <- list() 
 for(i in 1:length(centrality_Apis)){
   closeness.zscore[[i]] = net.zscore(centrality_Apis[[i]]['weighted.closeness'], 
-                                    as.vector(Apis_null[[i]][ ,'weighted.closeness']))
+                                     as.vector(Apis_null[[i]][ ,'weighted.closeness']))
 }
 names(closeness.zscore) <- unique(pol2$Landscape_ID)
 
@@ -123,7 +124,29 @@ null.sd <- sd(null.av$weighted.closeness)
 
 closeness.z <- closeness.zscore %>% bind_rows(.id = 'Site') %>% mutate(Site = sub('Wm', 'WM', Site)) 
 
-## how to deal with Nor264?
+
+#### Apis degree
+
+network_degree_null <- list()
+for (i in 1:length(null)) {
+  network_degree_null[[i]] <- null[[i]] %>% lapply(specieslevel, index=c('normalised degree'), level = 'higher')
+}
+names(network_degree_null) <- unique(pol2$Landscape_ID)
+
+
+Apis_degree_null <- lapply(network_degree_null, function(x) lapply(x, function(y) rownames_to_column(y, var = 'Species') %>%
+                                                                 filter(Species == 'Apis mellifera')) %>% bind_rows())
+
+degree.zscore <- list() 
+for(i in 1:length(degree_Apis)){
+  degree.zscore[[i]] = net.zscore(degree_Apis[[i]]['normalised.degree'], 
+                                     as.vector(Apis_degree_null[[i]][ ,'normalised.degree']))
+}
+names(degree.zscore) <- unique(pol2$Landscape_ID)
+
+degree.z <- degree.zscore %>% bind_rows(.id = 'Site') %>% mutate(Site = sub('Wm', 'WM', Site)) %>% rename(Degree.z = normalised.degree)
+
+## how to deal with Nor264 (no Apis)?
 Nor264 <- (0 - null.mean)/null.sd
 #or
 Nor264 <- -3
@@ -135,10 +158,13 @@ networks.z2 <- networks.z %>% left_join(connectance, by = 'Site') %>% left_join(
 
 networks.z2$Site <- sub('Wm', 'WM', networks.z2$Site)
 
-
+null.av <- Apis_degree_null %>% bind_rows()
+null.mean <- mean(null.av$normalised.degree)
+null.sd <- sd(null.av$normalised.degree)
 
 networks.z3 <- left_join(networks.z2, closeness.z, by = 'Site') %>% rename(Closeness.z = weighted.closeness)
-
+networks.z3 <- left_join(networks.z3, degree.z, by = 'Site')
 networks.z3[23,5] <- Nor264
+networks.z3[23,6] <- Nor264
 
 save(networks.z3, file = 'Data/networks_z.RData')

@@ -11,7 +11,7 @@ distinct(fl.cv, Transect_type) # the different habitat types
 
 # assigning the habitat types and AES labels
 hm <- data.frame(Transect_type = distinct(fl.cv, Transect_type),
-                 Transect_type2 = c('Other_AUM', 'Flower_fieBS11', 'Flower_fieBS12', 'Flower_fieBS2', 'Fallow', 'semi_natur','semi_natur', 'CropBV1', 'semi_natur'))
+                 Transect_type2 = c('Other_AUM', 'Flower_fieBS11', 'Flower_fieBS12', 'Flower_fieBS2', 'Fallow', 'semi_natur','Grassy_str', 'CropBV1', 'semi_natur'))
 
 
 fl.cv2 <- fl.cv %>% mutate(Date = as.Date(Date, '%m/%d/%Y')) %>% group_by(Run, Site, Transect_type) %>% summarise(flcv.m = mean(Total_flower_cover_percentage), Date = max(Date)) %>% 
@@ -40,7 +40,8 @@ flower_cover1000 <- fl.cv2 %>% filter(Run == 2) %>% group_by(Site, Transect_type
          Other_AUM = ifelse(is.na(Other_AUM), mean(Other_AUM, na.rm = T), Other_AUM),
          Fallow = ifelse(is.na(Fallow), mean(Fallow, na.rm = T), Fallow),
          CropBV1 = ifelse(is.na(CropBV1), mean(CropBV1, na.rm = T), CropBV1),
-         semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur)) %>%
+         semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur), 
+         Grassy_str = ifelse(is.na(Grassy_str), mean(Grassy_str, na.rm = T), Grassy_str)) %>%
   left_join(land1000, by = 'Site') %>% 
   #extrapolating (.x are the flower estimates, .y is the area in hectares)
   mutate(Org_ex = CropBV1.x * CropBV1.y/100,
@@ -49,12 +50,13 @@ flower_cover1000 <- fl.cv2 %>% filter(Run == 2) %>% group_by(Site, Transect_type
          Fl_BS2_ex = Flower_fieBS2.x * Flower_fieBS2.y/100,
          Fallow_ex = Fallow.x * Fallow.y/100,
          Other_AUM_ex = Other_AUM.x * Other_AUM.y/100,
+         Grassy_str_ex = Grassy_str.x * Grassy_str.y/100,
          semi_natur_ex = semi_natur.x * semi_natur.y/100) %>%
-  mutate(sum.fl = Org_ex + Fl_BS11_ex + Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
-         SNH.ex = 0.5*Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
+  mutate(sum.fl = Org_ex + Fl_BS11_ex + Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex + Grassy_str_ex,
+         SNH.ex = 0.5*Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex + Grassy_str_ex,
          Ann.fl.ex = Fl_BS11_ex + 0.5*Fl_BS12_ex ) %>%
   mutate(FL_per_agr = sum.fl / (Crop + CropBV1.y + Flower_fieBS2.y + Flower_fieBS12.y + Flower_fieBS11.y + Fallow.y +
-                                  Other_AUM.y + semi_natur.y)) %>%
+                                  Other_AUM.y + semi_natur.y + Grassy_str.y)) %>%
   select(Site, Org_ex, ends_with('.ex'), sum.fl, FL_per_agr)
 
 plot(density(flower_cover1000$FL_per_agr))
@@ -75,7 +77,8 @@ flower_cover500 <- fl.cv2 %>% filter(Run == 2) %>% group_by(Site, Transect_type2
          Other_AUM = ifelse(is.na(Other_AUM), mean(Other_AUM, na.rm = T), Other_AUM),
          Fallow = ifelse(is.na(Fallow), mean(Fallow, na.rm = T), Fallow),
          CropBV1 = ifelse(is.na(CropBV1), mean(CropBV1, na.rm = T), CropBV1),
-         semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur)) %>%
+         semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur), 
+         Grassy_str = ifelse(is.na(Grassy_str), mean(Grassy_str, na.rm = T), Grassy_str)) %>%
   left_join(land500, by = 'Site') %>% 
   #extrapolating (.x are the flower estimates, .y is the area in hectares)
   mutate(Org_ex = CropBV1.x * CropBV1.y/100,
@@ -84,12 +87,13 @@ flower_cover500 <- fl.cv2 %>% filter(Run == 2) %>% group_by(Site, Transect_type2
          Fl_BS2_ex = Flower_fieBS2.x * Flower_fieBS2.y/100,
          Fallow_ex = Fallow.x * Fallow.y/100,
          Other_AUM_ex = Other_AUM.x * Other_AUM.y/100,
+         Grassy_str_ex = Grassy_str.x * Grassy_str.y/100,
          semi_natur_ex = semi_natur.x * semi_natur.y/100) %>%
-  mutate(sum.fl = Org_ex + Fl_BS11_ex + Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
-         SNH.ex = 0.5*Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
+  mutate(sum.fl = Org_ex + Fl_BS11_ex + Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex + Grassy_str_ex,
+         SNH.ex = 0.5*Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex + Grassy_str_ex,
          Ann.fl.ex = Fl_BS11_ex + 0.5*Fl_BS12_ex ) %>%
   mutate(FL_per_agr = sum.fl / (Crop + CropBV1.y + Flower_fieBS2.y + Flower_fieBS12.y + Flower_fieBS11.y + Fallow.y +
-                                  Other_AUM.y + semi_natur.y)) %>%
+                                  Other_AUM.y + semi_natur.y + Grassy_str.y)) %>%
   select(Site, Org_ex, ends_with('.ex'), sum.fl, FL_per_agr)
 
 
@@ -112,7 +116,8 @@ honeybees1000 <- hb.ab2 %>% ungroup() %>%
          Other_AUM = ifelse(is.na(Other_AUM), mean(Other_AUM, na.rm = T), Other_AUM),
          Fallow = ifelse(is.na(Fallow), mean(Fallow, na.rm = T), Fallow),
          CropBV1 = ifelse(is.na(CropBV1), mean(CropBV1, na.rm = T), CropBV1),
-         semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur)) %>%
+         semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur),
+         Grassy_str = ifelse(is.na(Grassy_str), mean(Grassy_str, na.rm = T), Grassy_str)) %>%
   left_join(land1000, by = 'Site') %>% 
   mutate(Org_ex = CropBV1.x * CropBV1.y/0.02,
          Fl_BS11_ex = Flower_fieBS11.x * Flower_fieBS11.y/0.02,
@@ -120,13 +125,13 @@ honeybees1000 <- hb.ab2 %>% ungroup() %>%
          Fl_BS2_ex = Flower_fieBS2.x * Flower_fieBS2.y/0.02,
          Fallow_ex = Fallow.x * Fallow.y/0.02,
          Other_AUM_ex = Other_AUM.x * Other_AUM.y/0.02,
-         semi_natur_ex = semi_natur.x * semi_natur.y/0.02
-  ) %>%
-  mutate(sum.hb = Org_ex + Fl_BS11_ex + Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
-         SNH.ex = 0.5*Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
+         Grassy_str_ex = Grassy_str.x * Grassy_str.y/0.02,
+         semi_natur_ex = semi_natur.x * semi_natur.y/0.02) %>%
+  mutate(sum.hb = Org_ex + Fl_BS11_ex + Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex + Grassy_str_ex,
+         SNH.ex = 0.5*Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex + Grassy_str_ex,
          Ann.fl.ex = Fl_BS11_ex + 0.5*Fl_BS12_ex ) %>%
   mutate(HB_per_agr = sum.hb / (Crop + CropBV1.y + Flower_fieBS2.y + Flower_fieBS12.y + Flower_fieBS11.y + Fallow.y +
-                                  Other_AUM.y + semi_natur.y)) %>%
+                                  Other_AUM.y + semi_natur.y + Grassy_str.y)) %>%
   select(Site, Org_ex, ends_with('.ex'), sum.hb, HB_per_agr)
 
 plot(density(honeybees1000$HB_per_agr))
@@ -140,21 +145,23 @@ honeybees500 <- hb.ab2 %>% ungroup() %>%
          Other_AUM = ifelse(is.na(Other_AUM), mean(Other_AUM, na.rm = T), Other_AUM),
          Fallow = ifelse(is.na(Fallow), mean(Fallow, na.rm = T), Fallow),
          CropBV1 = ifelse(is.na(CropBV1), mean(CropBV1, na.rm = T), CropBV1),
-         semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur)) %>%
+         semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur),
+         Grassy_str = ifelse(is.na(Grassy_str), mean(Grassy_str, na.rm = T), Grassy_str)) %>%
   left_join(land500, by = 'Site') %>% 
   mutate(Org_ex = CropBV1.x * CropBV1.y/0.02,
          Fl_BS11_ex = Flower_fieBS11.x * Flower_fieBS11.y/0.02,
          Fl_BS12_ex = Flower_fieBS12.x * Flower_fieBS12.y/0.02,
          Fl_BS2_ex = Flower_fieBS2.x * Flower_fieBS2.y/0.02,
+         Grassy_str_ex = Grassy_str.x * Grassy_str.y/0.02,
          Fallow_ex = Fallow.x * Fallow.y/0.02,
          Other_AUM_ex = Other_AUM.x * Other_AUM.y/0.02,
          semi_natur_ex = semi_natur.x * semi_natur.y/0.02
   ) %>%
-  mutate(sum.hb = Org_ex + Fl_BS11_ex + Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
-         SNH.ex = 0.5*Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
+  mutate(sum.hb = Org_ex + Fl_BS11_ex + Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex + Grassy_str_ex,
+         SNH.ex = 0.5*Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex + Grassy_str_ex,
          Ann.fl.ex = Fl_BS11_ex + 0.5*Fl_BS12_ex ) %>%
   mutate(HB_per_agr = sum.hb / (Crop + CropBV1.y + Flower_fieBS2.y + Flower_fieBS12.y + Flower_fieBS11.y + Fallow.y +
-                                  Other_AUM.y + semi_natur.y)) %>%
+                                  Other_AUM.y + semi_natur.y + Grassy_str.y)) %>%
   select(Site, Org_ex, ends_with('.ex'), sum.hb, HB_per_agr)
 
 
@@ -176,21 +183,23 @@ bumblebees1000 <- bb.ab2 %>% ungroup() %>%
          Other_AUM = ifelse(is.na(Other_AUM), mean(Other_AUM, na.rm = T), Other_AUM),
          Fallow = ifelse(is.na(Fallow), mean(Fallow, na.rm = T), Fallow),
          CropBV1 = ifelse(is.na(CropBV1), mean(CropBV1, na.rm = T), CropBV1),
-         semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur)) %>%
+         semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur),
+         Grassy_str = ifelse(is.na(Grassy_str), mean(Grassy_str, na.rm = T), Grassy_str)) %>%
   left_join(land1000, by = 'Site') %>% 
   mutate(Org_ex = CropBV1.x * CropBV1.y/0.02,
          Fl_BS11_ex = Flower_fieBS11.x * Flower_fieBS11.y/0.02,
          Fl_BS12_ex = Flower_fieBS12.x * Flower_fieBS12.y/0.02,
          Fl_BS2_ex = Flower_fieBS2.x * Flower_fieBS2.y/0.02,
+         Grassy_str_ex = Grassy_str.x * Grassy_str.y/0.02,
          Fallow_ex = Fallow.x * Fallow.y/0.02,
          Other_AUM_ex = Other_AUM.x * Other_AUM.y/0.02,
          semi_natur_ex = semi_natur.x * semi_natur.y/0.02
   ) %>%
-  mutate(sum.bb = Org_ex + Fl_BS11_ex + Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
-         SNH.ex = 0.5*Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
+  mutate(sum.bb = Org_ex + Fl_BS11_ex + Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex + Grassy_str_ex,
+         SNH.ex = 0.5*Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex + Grassy_str_ex,
          Ann.fl.ex = Fl_BS11_ex + 0.5*Fl_BS12_ex ) %>%
   mutate(BB_per_agr = sum.bb / (Crop + CropBV1.y + Flower_fieBS2.y + Flower_fieBS12.y + Flower_fieBS11.y + Fallow.y +
-                                  Other_AUM.y + semi_natur.y)) %>%
+                                  Other_AUM.y + semi_natur.y + Grassy_str.y)) %>%
   select(Site, Org_ex, ends_with('.ex'), sum.bb, BB_per_agr)
 
 bumblebees500 <- bb.ab2 %>% ungroup() %>%
@@ -200,21 +209,23 @@ bumblebees500 <- bb.ab2 %>% ungroup() %>%
          Other_AUM = ifelse(is.na(Other_AUM), mean(Other_AUM, na.rm = T), Other_AUM),
          Fallow = ifelse(is.na(Fallow), mean(Fallow, na.rm = T), Fallow),
          CropBV1 = ifelse(is.na(CropBV1), mean(CropBV1, na.rm = T), CropBV1),
-         semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur)) %>%
+         semi_natur = ifelse(is.na(semi_natur), mean(semi_natur, na.rm = T), semi_natur),
+         Grassy_str = ifelse(is.na(Grassy_str), mean(Grassy_str, na.rm = T), Grassy_str)) %>%
   left_join(land500, by = 'Site') %>% 
   mutate(Org_ex = CropBV1.x * CropBV1.y/0.02,
          Fl_BS11_ex = Flower_fieBS11.x * Flower_fieBS11.y/0.02,
          Fl_BS12_ex = Flower_fieBS12.x * Flower_fieBS12.y/0.02,
+         Grassy_str_ex = Grassy_str.x * Grassy_str.y/0.02,
          Fl_BS2_ex = Flower_fieBS2.x * Flower_fieBS2.y/0.02,
          Fallow_ex = Fallow.x * Fallow.y/0.02,
          Other_AUM_ex = Other_AUM.x * Other_AUM.y/0.02,
          semi_natur_ex = semi_natur.x * semi_natur.y/0.02
   ) %>%
-  mutate(sum.bb = Org_ex + Fl_BS11_ex + Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
-         SNH.ex = 0.5*Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex,
+  mutate(sum.bb = Org_ex + Fl_BS11_ex + Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex + Grassy_str_ex,
+         SNH.ex = 0.5*Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex + Grassy_str_ex,
          Ann.fl.ex = Fl_BS11_ex + 0.5*Fl_BS12_ex ) %>%
   mutate(BB_per_agr = sum.bb / (Crop + CropBV1.y + Flower_fieBS2.y + Flower_fieBS12.y + Flower_fieBS11.y + Fallow.y +
-                                  Other_AUM.y + semi_natur.y)) %>%
+                                  Other_AUM.y + semi_natur.y + Grassy_str.y)) %>%
   select(Site, Org_ex, ends_with('.ex'), sum.bb, BB_per_agr)
 
 ### different approach with pooling at the AES level

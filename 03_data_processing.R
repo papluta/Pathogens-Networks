@@ -81,7 +81,7 @@ bb.prev <- bind2 %>% group_by(Site) %>% summarise(dwvb.bb = mean(dwvb),
                                                   abpv.bb = mean(abpv),
                                                   sbv.bb = mean(sbv))
 
-data <- all2 %>% rename(Sample = Sample.ID) %>% left_join(q.norm, by = 'Sample') %>% 
+data_500 <- all2 %>% rename(Sample = Sample.ID) %>% left_join(q.norm, by = 'Sample') %>% 
   left_join(dens, by = 'Site') %>%
   #left_join(land.all %>% filter(radius == '1000m'), by = 'Site') %>%
   #mutate(across(Ann.fl:AES, function(x) round(x / ((3.14 * 1000^2)/10000), digits = 3), .names = '{col}.p')) %>%
@@ -103,7 +103,7 @@ data <- all2 %>% rename(Sample = Sample.ID) %>% left_join(q.norm, by = 'Sample')
          abpv.f = log(abpv.hb * HB_per_agr * abpv.hb.q+1),
          sbv.f = log(sbv.hb * HB_per_agr * sbv.hb.q+1)) %>% 
   #filter(Site != 'WM630') %>%
-  mutate(HB_per_agr = log(HB_per_agr+1), FL_per_agr = FL_per_agr * 100) %>%
+  mutate(HB_per_agr = log(HB_per_agr), FL_per_agr = FL_per_agr * 100) %>%
   left_join(bumblebees500 %>% select(Site, sum.bb, BB_per_agr), by = 'Site') %>% left_join(bb.load, by = 'Site') %>% left_join(bb.prev, by = 'Site') %>%
   mutate(dwvb.bb.f = log(dwvb.bb * BB_per_agr * dwvb.bb.q + 1),
          bqcv.bb.f = log(bqcv.bb * BB_per_agr * bqcv.bb.q+1),
@@ -111,6 +111,35 @@ data <- all2 %>% rename(Sample = Sample.ID) %>% left_join(q.norm, by = 'Sample')
          sbv.bb.f = log(sbv.bb * BB_per_agr * sbv.bb.q+1)) %>%
   mutate(Closeness.z = ifelse(is.na(Closeness.z), -3, Closeness.z))
   
+data_1000 <- all2 %>% rename(Sample = Sample.ID) %>% left_join(q.norm, by = 'Sample') %>% 
+  left_join(dens, by = 'Site') %>%
+  #left_join(land.all %>% filter(radius == '1000m'), by = 'Site') %>%
+  #mutate(across(Ann.fl:AES, function(x) round(x / ((3.14 * 1000^2)/10000), digits = 3), .names = '{col}.p')) %>%
+  #left_join(land_metrics1000, by = 'Site') %>%
+  mutate(Density = as.factor(Density)) %>%
+  filter(Species != "" & Species != 'NA' & Species != 'Sipha flava' & Species != 'Bombus sylvarum' & Species != 'Oedogonium sp. BN3'
+         & Species != 'Megalocoleus molliculus' & Species != 'Orasema occidentalis' & Species != 'Orisarma intermedium' & Species != 'Lindenius albilabris') %>%
+  left_join(networks.z3, by = 'Site') %>% 
+  #left_join(fl.cv2, by = 'Site') %>%
+  #left_join(network_parameters_species3, by = join_by('Site', 'Species')) %>%
+  left_join(flower_cover1000 %>% select(Site, sum.fl, FL_per_agr), by = 'Site') %>% 
+  left_join(honeybees1000 %>% select(Site, sum.hb, HB_per_agr), by = 'Site') %>%
+  left_join(hb.prev, by = 'Site') %>% left_join(hb.load, by = 'Site') %>% 
+  # calculating infection exposure 1st way: prevalence * abundance
+  mutate(across(dwvb.hb:sbv.hb, function(x) log(x * HB_per_agr + 1), .names = '{col}.agr')) %>%
+  # calculating infection exposure 2st way: prevalence * abundance * viral load
+  mutate(dwvb.f = log(dwvb.hb * HB_per_agr * dwvb.hb.q + 1),
+         bqcv.f = log(bqcv.hb * HB_per_agr * bqcv.hb.q+1),
+         abpv.f = log(abpv.hb * HB_per_agr * abpv.hb.q+1),
+         sbv.f = log(sbv.hb * HB_per_agr * sbv.hb.q+1)) %>% 
+  #filter(Site != 'WM630') %>%
+  mutate(HB_per_agr = log(HB_per_agr), FL_per_agr = FL_per_agr * 100) %>%
+  left_join(bumblebees500 %>% select(Site, sum.bb, BB_per_agr), by = 'Site') %>% left_join(bb.load, by = 'Site') %>% left_join(bb.prev, by = 'Site') %>%
+  mutate(dwvb.bb.f = log(dwvb.bb * BB_per_agr * dwvb.bb.q + 1),
+         bqcv.bb.f = log(bqcv.bb * BB_per_agr * bqcv.bb.q+1),
+         abpv.bb.f = log(abpv.bb * BB_per_agr * abpv.bb.q+1),
+         sbv.bb.f = log(sbv.bb * BB_per_agr * sbv.bb.q+1)) %>%
+  mutate(Closeness.z = ifelse(is.na(Closeness.z), -3, Closeness.z))
 
 #dif <- data %>% select(Site, Species, dwvb) %>% full_join(network_parameters_species3, by = join_by('Site', 'Species'))
 
