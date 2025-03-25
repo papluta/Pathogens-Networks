@@ -128,4 +128,4 @@ wind.both2 <- wind.both %>% filter(X28S < cutout.wb) %>% ## housekeeping gene be
 data.pathogen.both <- rbind(hind.both2, bind.both2, lind.both2, pind.both2, wind.both2) #%>% mutate(across(DWVB.abs:SBV.abs, function(x) x/BUFFER))
 levels(as.factor(data.pathogen.both$Species))
 
-#write.csv(data.pathogen.both, file = 'Data/data_pathogen_both.csv', row.names = F)
+write.csv(data.pathogen.both, file = 'Data/data_pathogen_both.csv', row.names = F)

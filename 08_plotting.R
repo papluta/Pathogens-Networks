@@ -1,13 +1,16 @@
-load('Data/250260R0_results.RData')
-load('250304_models_mor_con_sep.RData')
-load('250130_comm_models.RData')
+load('Data/Results/250260R0_results.RData')
+load('Data/Results/250304_models_mor_con_sep.RData')
+load('Data/Results/250304_models_connectance.RData')
+load('Data/Results/250130_comm_models.RData')
 
 source('05_main_data_file.R')
+source('00_plotting_functions.R')
 
 library(dplyr)
 library(tidyverse)
 library(ggplot2)
 library(cowplot)
+library(bayestestR)
 
 #######################################
 ####### RAW PREVALENCE AND LOAD #######
@@ -59,8 +62,9 @@ dw = data.both  %>% pivot_longer(cols = dwvb:sbv, names_to = 'virus', values_to 
   geom_bar(stat = 'identity', col = 'black', position = position_dodge(), width = 1)+
   scale_fill_manual(values = c('#6a7f54', '#d55e00', '#f0e442'), labels = c('Honeybee', 'Bumblebee', 'Other bee'))+
   theme_bw(base_size = 16)+
+  geom_hline(aes(yintercept = mean(prevalence)), linetype = 'dashed')+
   ylim(0,1)+
-  labs(x = NULL, y = 'Prevalence', fill = NULL, title = 'E')+
+  labs(x = NULL, y = 'Prevalence', fill = NULL, title = 'C')+
   theme(axis.text = element_text(color = 'black'), legend.position = 'left', panel.grid = element_blank(), 
         axis.ticks.x = element_blank())+
   scale_x_discrete(labels = c('DWV-B'))
@@ -71,6 +75,7 @@ bq = data.both  %>% pivot_longer(cols = dwvb:sbv, names_to = 'virus', values_to 
   ggplot(aes(virus, prevalence, fill = Group)) +
   geom_bar(stat = 'identity', col = 'black', position = position_dodge(), width = 1)+
   scale_fill_manual(values = c('#6a7f54', '#d55e00', '#f0e442'), labels = c('Honeybee', 'Bumblebee', 'Other bee'))+
+  geom_hline(aes(yintercept = mean(prevalence)), linetype = 'dashed')+
   theme_bw(base_size = 16)+
   ylim(0,1)+
   labs(x = NULL, y = 'Prevalence', fill = NULL, title = 'F')+
@@ -79,6 +84,7 @@ bq = data.both  %>% pivot_longer(cols = dwvb:sbv, names_to = 'virus', values_to 
   scale_x_discrete(labels = c('BQCV'))
 
 leg.p = get_legend(dw)
+leg.p = get_plot_component(dw, 'guide-box-left', return_all = T)
 prev.sep = plot_grid(dw + theme(legend.position = 'none'),leg.p, bq, rel_heights = c(0.4,0.2,0.4), nrow = 3)
 
 
@@ -106,7 +112,7 @@ sim.ms = r0.main.host %>% bind_rows(.id = 'mod') %>%
   summarise(prev.no.mh.m = mean(mean.prev.no.mh), prev.no.mh.sd = sd(mean.prev.no.mh), prev.m = mean(mean.prev), prev.sd = sd(mean.prev)) %>%
   rename(sim.m = prev.no.mh.m, sim.sd = prev.no.mh.sd) %>% pivot_wider(names_from = Virus, values_from = c(sim.m, sim.sd, prev.m, prev.sd)) %>% arrange(Species)
 
-write.csv(sim.ms, file = 'Data/Results/sim_results_r0.csv')
+#write.csv(sim.ms, file = 'Data/Results/sim_results_r0.csv')
 
 sim.ms.alt = r0.alt.host %>% bind_rows(.id = 'mod') %>% 
   mutate(across(mean.r0:mean.prev, function(x) round(x, digits = 2))) %>%
@@ -115,7 +121,7 @@ sim.ms.alt = r0.alt.host %>% bind_rows(.id = 'mod') %>%
   summarise(prev.no.mh.m = mean(mean.prev.no.mh), prev.no.mh.sd = sd(mean.prev.no.mh)) %>%
   rename(sim.m = prev.no.mh.m, sim.sd = prev.no.mh.sd) %>% pivot_wider(names_from = Virus, values_from = c(sim.m, sim.sd)) %>% arrange(Species)
 
-write.csv(sim.ms.alt, file = 'Data/Results/sim_results_r0_althost.csv')
+#write.csv(sim.ms.alt, file = 'Data/Results/sim_results_r0_althost.csv')
 
 ### plotting top 4 R0 species
 
@@ -146,7 +152,8 @@ bqcv.top.r0 = r0.plot %>% filter(Virus == 'bqcv') %>% filter(Species %in% top4[t
   scale_fill_manual(values = c('#6a7f54', '#d55e00', '#56B4E9', '#CC79A7'))+
   theme(legend.position = 'none', axis.text.y = element_text(color = 'black'),
         axis.text.x = element_text(color = 'black', size = 14, face = 'italic'), title = element_text(size = 20))+
-  labs(x = NULL, y = expression(paste('BQCV ', R[0][","][i], ' (', log[10], ')')), title = 'B')
+  labs(x = NULL, y = expression(paste('BQCV ', R[0][","][i])), title = 'B')+
+  scale_y_continuous(labels = c(1,10,100,1000), breaks = c(0,1,2,3))
 
 
 abpv.top.r0 = r0.plot %>% filter(Virus == 'abpv') %>% filter(Species %in% top4[top4$Virus == 'abpv',]$Species) %>%
@@ -162,6 +169,26 @@ abpv.top.r0 = r0.plot %>% filter(Virus == 'abpv') %>% filter(Species %in% top4[t
 
 r0_plots = plot_grid(dwvb.top.r0, bqcv.top.r0, abpv.top.r0, align = 'hv', nrow = 3)
 
+
+## simulation plot
+
+obs = sim.ms %>% select(Species, starts_with('prev.m_')) %>% pivot_longer(cols = starts_with('prev.m_'), names_to = 'Virus', values_to = 'Prev') %>% mutate(host = 'obs', Virus = sub('prev.m_','', Virus))
+sim1 = sim.ms %>% select(Species, starts_with('sim.m_')) %>% pivot_longer(cols = starts_with('sim.m_'), names_to = 'Virus', values_to = 'Prev') %>% mutate(host = 'main', Virus = sub('sim.m_','', Virus))
+sim2 = sim.ms.alt %>% select(Species, starts_with('sim.m_')) %>% pivot_longer(cols = starts_with('sim.m_'), names_to = 'Virus', values_to = 'Prev') %>% mutate(host = 'alt', Virus = sub('sim.m_','', Virus)) %>% mutate(Species = sub(' ', '\n', Species))
+sim = rbind(sim1, sim2) %>% left_join(obs, by = c('Species', 'Virus')) %>% mutate(fold = Prev.x/Prev.y) %>% 
+  mutate(host.v = paste0(Virus, host.x)) %>% mutate(Species = sub('\n',' ', Species)) %>% mutate(host.v = factor(host.v, levels = c('abpvmain', 'abpvalt', 'bqcvalt', 'bqcvmain', 'dwvbalt', 'dwvbmain')))
+
+ggplot(sim, aes(Species, host.v, fill= fold)) + 
+  geom_tile()+
+  labs(x = NULL, y = NULL, fill = 'Fold change from\nobserved prevalence')+
+  theme_map()+
+  scale_fill_viridis(option = 'magma')+
+  scale_y_discrete(labels = c('B. lapidarius', 'A. mellifera','B. lapidarius', 'A. mellifera','B. lapidarius', 'A. mellifera' ))+
+  theme(axis.ticks = element_blank(), axis.text = element_text(color = 'black', face = 'italic'), axis.text.x = element_text(angle = 90, hjust = 0.98))
+  
+ggsave(file = 'Data/fig/heatmap_simprev.pdf', width = 9, height = 8)
+ggsave(file = 'Data/fig/heatmap_simprev.png', width = 9, height = 8)
+
 ########################################
 ########## STATISTICAL MODELS ##########
 ########################################
@@ -169,7 +196,18 @@ r0_plots = plot_grid(dwvb.top.r0, bqcv.top.r0, abpv.top.r0, align = 'hv', nrow =
 ########################
 ###### COMMUNITY #######
 ########################
+ggplot(data.site, aes(x = as.factor(Density), y = hb.dens, fill = as.factor(Density))) +
+  geom_boxplot()+
+  theme_bw()+
+  scale_fill_manual(values = c('#d0d316', '#d32116'))+
+  labs(x = '\nHoneybee colony density', y = expression(paste('Honeybee density ', 'per ', m^2 ,'of flowers')),
+       title = 'C')+
+  theme(panel.grid = element_blank(), axis.text = element_text(color = 'black'), legend.position = 'none',
+        axis.ticks.x = element_blank())+
+  scale_x_discrete(labels = c('Low', 'Increased'))
 
+ggsave(file = 'Data/fig/colony_dens_pred.png', height = 3, width = 3)
+ggsave(file = 'Data/fig/colony_dens_pred.pdf', height = 3, width = 3)
 
 ### JOINT SUMMARY OF THE MODELS
 cs.site <- lapply(site_models_500, custom_summary) %>% bind_rows(.id = 'mod') %>%
@@ -186,18 +224,17 @@ p_direction(mod)
 conditional_effects(mod)
 new_dat = expand.grid(
   FL_rich = c(4,11),
-  sum.ab = seq(min(mod$data$sum.ab), max(mod$data$sum.ab), by = 0.05),
+  sum.ab.fl = seq(min(mod$data$sum.ab.fl), max(mod$data$sum.ab.fl), by = 0.05),
   Year = 2022
 )
 
 posterior_preds <- epred_draws(mod, newdata = new_dat, re_formula = NA)
 
-
-mor.a = ggplot(posterior_preds, aes(x = sum.ab, y = .epred)) +
+mor.a = ggplot(posterior_preds, aes(x = sum.ab.fl, y = .epred)) +
   stat_lineribbon(.width = c(0.95), alpha = 0.5, aes(fill = as.factor(FL_rich)), show.legend = F) +
   labs(x = "Total bee density", y = "Resource overlap with\nhoneybee", title = 'A', col = 'Flower richness')+
-  geom_jitter(data = mod$data, aes(sum.ab, Morisita.z, col = cut(FL_rich, 2)), shape = 19, height = 0.025, alpha = 0.5)+ 
-  scale_y_continuous(limits = c(-5, 2.5))+
+  geom_jitter(data = mod$data, aes(sum.ab.fl, Morisita.z, col = cut(FL_rich, 2)), shape = 19, height = 0.025, alpha = 0.5)+ 
+  #scale_y_continuous(limits = c(-5, 2.5))+
   theme_bw(base_size = 16)+
   scale_color_manual(values = c('#ddcd4b','#4b5bdd'))+
   scale_fill_manual(values = c('#ddcd4b','#4b5bdd'))+
@@ -206,20 +243,20 @@ mor.a = ggplot(posterior_preds, aes(x = sum.ab, y = .epred)) +
 
 mod = site_models_500[['morisita.bl.m']]
 p_direction(mod)
-conditional_effects(mod)
+#conditional_effects(mod)
 new_dat = expand.grid(
   FL_rich = c(4,11),
-  sum.ab = seq(min(mod$data$sum.ab), max(mod$data$sum.ab), by = 0.05),
+  sum.ab.fl = seq(min(mod$data$sum.ab.fl), max(mod$data$sum.ab.fl), by = 0.05),
   Year = 2022
 )
 
 posterior_preds <- epred_draws(mod, newdata = new_dat, re_formula = NA)
 
 
-mor.b = ggplot(posterior_preds, aes(x = sum.ab, y = .epred)) +
+mor.b = ggplot(posterior_preds, aes(x = sum.ab.fl, y = .epred)) +
   stat_lineribbon(.width = c(0.95), alpha = 0.5, aes(fill = as.factor(FL_rich)), show.legend = F) +
   labs(x = "Total bee density", y = "Resource overlap with\nred-tailed bumblebee", title = 'B', col = 'Flower richness')+
-  geom_jitter(data = mod$data, aes(sum.ab, Morisita.bl.z, col = cut(FL_rich, 2)), shape = 19, height = 0.025, alpha = 0.5)+ 
+  geom_jitter(data = mod$data, aes(sum.ab.fl, Morisita.bl.z, col = cut(FL_rich, 2)), shape = 19, height = 0.025, alpha = 0.5)+ 
   theme_bw(base_size = 14)+
   scale_y_continuous(limits = c(-5, 2.5))+
   scale_color_manual(values = c('#ddcd4b','#4b5bdd'))+
@@ -231,6 +268,8 @@ legend <- get_legend(
   mor.a + theme(legend.box.margin = margin(-200, 0, 0, 0))
 )
 
+legend <- get_plot_component(mor.a,  'guide-box-bottom', return_all = T)
+
 aa = plot_grid(mor.a + theme(legend.position="none"), mor.b, align = 'hv')
 
 plot_grid(aa, legend, ncol = 1)
@@ -238,12 +277,62 @@ plot_grid(aa, legend, ncol = 1)
 ggsave(file = 'Data/fig/pred_site_mor.pdf', height = 8, width = 8)
 ggsave(file = 'Data/fig/pred_site_mor.png', height = 8, width = 8)
 
+### Connectance
 
+
+mod = site_models_500[['con.m']]
+p_direction(mod)
+#conditional_effects(mod)
+#pairs(mod)
+
+new_dat = expand.grid(
+  FL_rich = mean(mod$data$FL_rich),
+  sum.ab.fl.s = seq(min(mod$data$sum.ab.fl.s), max(mod$data$sum.ab.fl.s), by = 0.05),
+  Year = 2021
+)
+
+posterior_preds <- epred_draws(mod, newdata = new_dat, re_formula = NA)
+
+m = mean(data.site$sum.ab.fl)
+sd = sd(data.site$sum.ab.fl)
+x = data.frame(z = new_dat$sum.ab.fl.s, r = new_dat$sum.ab.fl.s * sd + m) %>% distinct(z,r)
+
+posterior_preds2 = left_join(posterior_preds, x, by = join_by('sum.ab.fl.s' == 'z')) 
+
+con.a = ggplot(posterior_preds2, aes(x = r, y = .epred)) +
+  stat_lineribbon(.width = c(0.95), fill = '#4b5bdd', show.legend = F) +
+  labs(x = "Total bee density (ln)", y = "Network connectance", title = 'A')+
+  geom_jitter(data = mod$data  %>%
+                mutate(sum.ab.fl.r = sum.ab.fl.s * sd + m), aes(sum.ab.fl.r, Connectance), shape = 19, height = 0.025, alpha = 0.5)+ 
+  #scale_y_continuous(limits = c(-5, 2.5))+
+  theme_bw(base_size = 16)+
+  theme(legend.position = "none", panel.grid = element_blank(), axis.text = element_text(color = 'black'))
+
+
+new_dat = expand.grid(
+  FL_rich = seq(min(mod$data$FL_rich), max(mod$data$FL_rich), by = 0.05),
+  sum.ab.fl.s = 0,
+  Year = 2022
+)
+
+posterior_preds <- epred_draws(mod, newdata = new_dat, re_formula = NA)
+
+
+con.b = ggplot(posterior_preds, aes(x = FL_rich, y = .epred)) +
+  stat_lineribbon(.width = c(0.95), fill = '#4b5bdd', show.legend = F) +
+  labs(x = "Flower richness", y = "Network connectance", title = 'B')+
+  geom_jitter(data = mod$data, aes(FL_rich, Connectance), shape = 19, height = 0.025, alpha = 0.5)+ 
+  #scale_y_continuous(limits = c(-5, 2.5))+
+  theme_bw(base_size = 16)+
+  theme(legend.position = "bottom", panel.grid = element_blank(), axis.text = element_text(color = 'black'))
+
+plot_grid(con.a, con.b + theme(legend.position = 'none'), ncol = 2, align = 'hv')
+
+ggsave(file = 'Data/fig/connectance_pred.png', width = 8, height = 4)
 
 ########################
 #### hurdle summary ####
 ########################
-
 
 wb.cs <- lapply(WB_models_Connectance, custom_summary) %>% bind_rows(.id = 'id') 
 wb.cs %>% filter(pd > 0.91) %>% 
@@ -297,7 +386,7 @@ posterior_preds2 = left_join(posterior_preds, x, by = join_by('dwvb.f.s' == 'z')
 
 exp_dwvb_w = ggplot(posterior_preds2, aes(x = r, y = 1-hu)) +
   stat_lineribbon(.width = c(0.95), fill = '#6a7f54') +
-  labs(x = expression(paste("Viral exposure to ", italic("A. mellifera"))), y = "DWV-B detection", title = NULL)+
+  labs(x = expression(paste("Viral exposure to ", italic("A. mellifera"))), y = "DWV-B prevalence", title = NULL)+
   annotate("text", label = "pd = 1.00", x=11,  y=0.92, hjust=0)+
   geom_jitter(data = mod$data %>% mutate(DWVB.abs = ifelse(DWVB.abs > 0, 1, 0)) %>%
                 mutate(dwvb.f.r = dwvb.f.s * sd + m), aes(dwvb.f.r, DWVB.abs), shape = 21, height = 0.025, alpha = 0.4)+
@@ -331,7 +420,7 @@ posterior_preds2 = left_join(posterior_preds, x, by = join_by('bqcv.f.s' == 'z')
 
 exp_bqcv_w = ggplot(posterior_preds2, aes(x = r, y = 1-hu)) +
   stat_lineribbon(.width = c(0.95), fill = '#6a7f54') +
-  labs(x = expression(paste("Viral exposure to ", italic("A. mellifera"))), y = "BQCV detection", title = NULL)+
+  labs(x = expression(paste("Viral exposure to ", italic("A. mellifera"))), y = "BQCV prevalence", title = NULL)+
   annotate("text", label = "pd = 0.95", x=15,  y=0.92, hjust=0)+
   geom_jitter(data = mod$data %>% mutate(BQCV.abs = ifelse(BQCV.abs > 0, 1, 0)) %>%
                 mutate(bqcv.f.r = bqcv.f.s * sd + m), aes(bqcv.f.r, BQCV.abs), shape = 21, height = 0.025, alpha = 0.4)+
@@ -365,7 +454,7 @@ posterior_preds2 = left_join(posterior_preds, x, by = join_by('abpv.bl.f.s' == '
 
 exp_abpv_w = ggplot(posterior_preds2, aes(x = r, y = 1-hu)) +
   stat_lineribbon(.width = c(0.95), fill = '#d55e00') +
-  labs(x = expression(paste("Viral exposure to ", italic("B. lapidarius"))), y = "ABPV detection", title = NULL)+
+  labs(x = expression(paste("Viral exposure to ", italic("B. lapidarius"))), y = "ABPV prevalence", title = NULL)+
   annotate("text", label = "pd = 0.99", x=11,  y=0.92, hjust=0)+
   geom_jitter(data = mod$data %>% mutate(ABPV.abs = ifelse(ABPV.abs > 0, 1, 0)) %>%
                 mutate(abpv.bl.f.r = abpv.bl.f.s * sd + m), aes(abpv.bl.f.r, ABPV.abs), shape = 21, height = 0.025, alpha = 0.4)+
@@ -398,7 +487,7 @@ posterior_preds <- epred_draws(mod, newdata = new_dat, dpar = 'hu', re_formula =
 
 nich_bqcv_b = ggplot(posterior_preds, aes(x = Morisita.z.s, y = 1-hu)) +
   stat_lineribbon(.width = c(0.95), fill = '#6a7f54') +
-  labs(x = expression(paste("Resource overlap with ", italic("A. mellifera"))), y = "BQCV detection", title = 'A')+
+  labs(x = expression(paste("Resource overlap with ", italic("A. mellifera"))), y = "BQCV prevalence", title = 'A')+
   annotate("text", label = "pd = 1.00", x=-1.8,  y=0.92, hjust=0)+
   geom_jitter(data = mod$data %>% mutate(BQCV.abs = ifelse(BQCV.abs > 0, 1, 0)), aes(Morisita.z.s, BQCV.abs), shape = 19, height = 0.025, alpha = 0.4)+ 
   theme_bw(base_size = 14)+
@@ -425,7 +514,7 @@ posterior_preds <- epred_draws(mod, newdata = new_dat, dpar = 'mu', re_formula =
 
 nich_bqcv_w = ggplot(posterior_preds, aes(x = Morisita.z.s, y = mu)) +
   stat_lineribbon(.width = c(0.95), fill = '#6a7f54') +
-  labs(x = expression(paste("Resource overlap with ", italic("A. mellifera"))), y = "Number of BQCV copies (ln)", title = 'B')+
+  labs(x = expression(paste("Resource overlap with ", italic("A. mellifera"))), y = "BQCV load (ln)", title = 'B')+
   annotate("text", label = "pd = 0.97", x=-0.4,  y=12, hjust=0)+
   geom_jitter(data = mod$data[mod$data$BQCV.abs >0,], aes(Morisita.z.s, log(BQCV.abs)), shape = 19, height = 0.025, alpha = 0.2)+
   theme_bw(base_size = 14)+
@@ -450,7 +539,7 @@ posterior_preds <- epred_draws(mod, newdata = new_dat, dpar = 'mu', re_formula =
 
 nich_abpv_w = ggplot(posterior_preds, aes(x = Morisita.bl.z.s, y = mu)) +
   stat_lineribbon(.width = c(0.95), fill = '#d55e00') +
-  labs(x = expression(paste("Resource overlap with ", italic("B. lapidarius"))), y = "Number of ABPV copies (ln)", title = 'C')+
+  labs(x = expression(paste("Resource overlap with ", italic("B. lapidarius"))), y = "ABPV load (ln)", title = 'C')+
   annotate("text", label = "pd = 0.98", x=0,  y=12, hjust=0)+
   geom_jitter(data = mod$data[mod$data$ABPV.abs >0,], aes(Morisita.bl.z.s, log(ABPV.abs)), shape = 19, height = 0.025, alpha = 0.2)+
   theme_bw(base_size = 14)+
@@ -465,9 +554,8 @@ mod = WB_models_Connectance[['dwvb.b']]
 p_direction(mod)
 
 new_dat = expand.grid(
-  Connectance = seq(min(mod$data$Connectance), max(mod$data$Connectance), by = 0.1),
-  sum.ab.fl = 0,
-  FL_per_agr = 0, 
+  Connectance.s = seq(min(mod$data$Connectance.s), max(mod$data$Connectance.s), by = 0.1),
+  sum.ab.fl.s = 0,
   Year = 2022, 
   Site = 'Goe1425',
   Species = 'Bombus lapidarius'
@@ -478,14 +566,14 @@ data.bb.raw = data.both %>% filter(Group == 'bb') %>% ungroup() %>%
   filter(Morisita.z > -10)
 m = mean(data.bb.raw$Connectance)
 sd = sd(data.bb.raw$Connectance)
-x = data.frame(z = new_dat$Connectance, r = new_dat$Connectance * sd + m) %>% distinct(z,r)
+x = data.frame(z = new_dat$Connectance.s, r = new_dat$Connectance.s * sd + m) %>% distinct(z,r)
 
-posterior_preds2 = left_join(posterior_preds, x, by = join_by('Connectance' == 'z')) 
+posterior_preds2 = left_join(posterior_preds, x, by = join_by('Connectance.s' == 'z')) 
 
 con.a = ggplot(posterior_preds2, aes(x = r, y = 1-hu)) +
   stat_lineribbon(.width = c(0.95), fill = '#547f7f') +
-  labs(x = "Connectance", y = "DWV-B detection", title = 'A')+
-  geom_jitter(data = mod$data %>% mutate(Connectance.r = Connectance * sd + m) , aes(Connectance.r, ifelse(DWVB.abs > 0, 1, 0)), shape = 21, height = 0.025, alpha = 0.2)+
+  labs(x = "Connectance", y = "DWV-B prevalence", title = 'A')+
+  geom_jitter(data = mod$data %>% mutate(Connectance.r = Connectance.s * sd + m) , aes(Connectance.r, ifelse(DWVB.abs > 0, 1, 0)), shape = 21, height = 0.025, alpha = 0.2)+
   annotate("text", label = "pd = 0.99", x=0.38,  y=0.92, hjust=0)+
   theme_bw(base_size = 16)+
   theme(legend.position = "bottom", panel.grid = element_blank(), axis.text = element_text(color = 'black'))
@@ -495,9 +583,8 @@ con.a = ggplot(posterior_preds2, aes(x = r, y = 1-hu)) +
 mod = WB_models_Connectance[['dwvb.w']]
 p_direction(mod)
 new_dat = expand.grid(
-  Connectance = seq(min(mod$data$Connectance), max(mod$data$Connectance), by = 0.1),
-  sum.ab.fl = 0,
-  FL_per_agr = 0, 
+  Connectance.s = seq(min(mod$data$Connectance.s), max(mod$data$Connectance.s), by = 0.1),
+  sum.ab.fl.s = 0,
   Year = 2022, 
   Site = 'Goe1425',
   Species = 'Bombus lapidarius'
@@ -508,14 +595,14 @@ data.bb.raw = data.both %>% filter(Group == 'wb') %>% ungroup() %>%
   filter(Morisita.z > -10)
 m = mean(data.bb.raw$Connectance)
 sd = sd(data.bb.raw$Connectance)
-x = data.frame(z = new_dat$Connectance, r = new_dat$Connectance * sd + m) %>% distinct(z,r)
+x = data.frame(z = new_dat$Connectance.s, r = new_dat$Connectance.s * sd + m) %>% distinct(z,r)
 
-posterior_preds2 = left_join(posterior_preds, x, by = join_by('Connectance' == 'z')) 
+posterior_preds2 = left_join(posterior_preds, x, by = join_by('Connectance.s' == 'z')) 
 
 con.b = ggplot(posterior_preds2, aes(x = r, y = 1-hu)) +
   stat_lineribbon(.width = c(0.95), fill = '#547f7f') +
-  labs(x = "Connectance", y = "DWV-B detection", title = 'B')+
-  geom_jitter(data = mod$data %>% mutate(Connectance.r = Connectance * sd + m) , aes(Connectance.r, ifelse(DWVB.abs > 0, 1, 0)), shape = 21, height = 0.025, alpha = 0.2)+
+  labs(x = "Connectance", y = "DWV-B prevalence", title = 'B')+
+  geom_jitter(data = mod$data %>% mutate(Connectance.r = Connectance.s * sd + m) , aes(Connectance.r, ifelse(DWVB.abs > 0, 1, 0)), shape = 21, height = 0.025, alpha = 0.2)+
   annotate("text", label = "pd = 0.95", x=0.38,  y=0.92, hjust=0)+
   theme_bw(base_size = 16)+
   theme(legend.position = "bottom", panel.grid = element_blank(), axis.text = element_text(color = 'black'))
@@ -526,9 +613,8 @@ mod = WB_models_Connectance[['bqcv.b']]
 p_direction(mod)
 
 new_dat = expand.grid(
-  Connectance = seq(min(mod$data$Connectance), max(mod$data$Connectance), by = 0.1),
-  sum.ab.fl = 0,
-  FL_per_agr = 0, 
+  Connectance.s = seq(min(mod$data$Connectance.s), max(mod$data$Connectance.s), by = 0.1),
+  sum.ab.fl.s = 0,
   Year = 2022, 
   Site = 'Goe1425',
   Species = 'Bombus pascuorum'
@@ -539,25 +625,25 @@ data.bb.raw = data.both %>% filter(Group == 'bb') %>% ungroup() %>%
   filter(Morisita.z > -10)
 m = mean(data.bb.raw$Connectance)
 sd = sd(data.bb.raw$Connectance)
-x = data.frame(z = new_dat$Connectance, r = new_dat$Connectance * sd + m) %>% distinct(z,r)
-posterior_preds2 = left_join(posterior_preds, x, by = join_by('Connectance' == 'z')) 
+x = data.frame(z = new_dat$Connectance.s, r = new_dat$Connectance.s * sd + m) %>% distinct(z,r)
+posterior_preds2 = left_join(posterior_preds, x, by = join_by('Connectance.s' == 'z')) 
 
 con.c = ggplot(posterior_preds2, aes(x = r, y = 1-hu)) +
   stat_lineribbon(.width = c(0.95), fill = '#547f7f') +
-  labs(x = "Connectance", y = "BQCV detection", title = 'C')+
-  geom_jitter(data = mod$data %>% mutate(Connectance.r = Connectance * sd + m) , aes(Connectance.r, ifelse(BQCV.abs > 0, 1, 0)), shape = 21, height = 0.025, alpha = 0.2)+
+  labs(x = "Connectance", y = "BQCV prevalence", title = 'D')+
+  geom_jitter(data = mod$data %>% mutate(Connectance.r = Connectance.s * sd + m) , aes(Connectance.r, ifelse(BQCV.abs > 0, 1, 0)), shape = 21, height = 0.025, alpha = 0.2)+
   annotate("text", label = "pd = 0.98", x=0.38,  y=0.92, hjust=0)+
   theme_bw(base_size = 16)+
   theme(legend.position = "bottom", panel.grid = element_blank(), axis.text = element_text(color = 'black'))
 
 posterior_preds <- epred_draws(mod, newdata = new_dat, dpar = 'mu', re_formula = NA)
 
-posterior_preds2 = left_join(posterior_preds, x, by = join_by('Connectance' == 'z')) 
+posterior_preds2 = left_join(posterior_preds, x, by = join_by('Connectance.s' == 'z')) 
 
 con.d = ggplot(posterior_preds2, aes(x = r, y = log(.epred))) +
   stat_lineribbon(.width = c(0.95), fill = '#547f7f') +
-  labs(x = "Connectance", y = "Number of BQCV copies (ln)", title = 'D')+
-  geom_point(data = mod$data %>% filter(BQCV.abs > 0) %>% mutate(Connectance.r = Connectance * sd + m) , aes(Connectance.r, log(BQCV.abs)), shape = 21,alpha = 0.2)+
+  labs(x = "Connectance", y = "BQCV load (ln)", title = 'E')+
+  geom_point(data = mod$data %>% filter(BQCV.abs > 0) %>% mutate(Connectance.r = Connectance.s * sd + m) , aes(Connectance.r, log(BQCV.abs)), shape = 21,alpha = 0.2)+
   annotate("text", label = "pd = 0.94", x=0.38,  y=16, hjust=0)+
   theme_bw(base_size = 16)+
   theme(legend.position = "bottom", panel.grid = element_blank(), axis.text = element_text(color = 'black'))
@@ -582,7 +668,7 @@ ggsave(file = 'Data/fig/r0_pred.pdf', height = 10, width = 9)
 niche_pred
 
 ggsave('Data/fig/pred_niche.pdf', width = 10, height = 3.5)
-ggsave('Data/fig/pred_niche.png', width = 10, height = 3.5)
+ggsave('Data/fig/pred_niche.png', width = 10, height = 3.5, bg = 'transparent')
 
 ## FIGURE 4
 con.grid
@@ -590,6 +676,5 @@ prev.sep
 
 plot_grid(con.grid, prev.sep, nrow = 1, rel_widths = c(3/4, 1/4), align = 'v')
 
-ggsave('Data/fig/pred_conn.pdf', width = 8, height = 8)
 ggsave('Data/fig/pred_conn_prev.pdf', width = 10, height = 8)
-ggsave('Data/fig/pred_conn.png', width = 8, height = 8)
+ggsave('Data/fig/pred_conn.png', width = 10, height = 8)

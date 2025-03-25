@@ -20,39 +20,48 @@ set.seed(99)
 
 #### SITE-LEVEL MODELS ####
 
-ab.m <- brm(log(sum.ab) ~ FL.sum + Year + (1|Site), family = 'Gaussian',  # INTERACTION NOT SIGNIFICANT
-            prior = prior(normal(0,5), class = 'b'), data = data.site)
-ab.m <- brm(log(sum.ab) ~ FL_rich + Year + (1|Site), family = 'Gaussian',  # INTERACTION NOT SIGNIFICANT
-            prior = prior(normal(0,5), class = 'b'), data = data.site)
+# hb.dens.m = brm(log(hb.dens) ~ Density + Year, prior = prior(normal(0,5), class = 'b'), family = 'Gaussian', data.site)
+#  
+# summary(hb.dens.m)
+# pp_check(hb.dens.m, ndraws = 100)
+# p_direction(hb.dens.m)
+# conditional_effects(hb.dens.m)
 
-summary(ab.m)
-pp_check(ab.m, ndraws = 100)
-p_direction(ab.m)
-conditional_effects(ab.m)
-
-con.m <- brm(Connectance ~ FL_rich * log(sum.ab.d) + Year + (1|Site), family = Beta(), # INTERACTION NOT SIGNIFICANT
+con.m <- brm(Connectance ~ FL_rich + sum.ab.fl.s + Year + (1|Site), family = Beta(), # INTERACTION NOT SIGNIFICANT
             prior = prior(normal(0,5), class = 'b'), data = data.site)
+# con.m.a <- brm(Connectance ~ FL.sum + sum.ab.fl + Year + (1|Site), family = Beta(), # INTERACTION NOT SIGNIFICANT
+#              prior = prior(normal(0,5), class = 'b'), data = data.site)
 summary(con.m)
 pp_check(con.m, ndraws = 100)
 p_direction(con.m)
 pairs(con.m)
 
+con.m.a.waic = waic(con.m.a)
+con.m.r.waic = waic(con.m)
+loo_compare(con.m.a.waic, con.m.r.waic)
 
-morisita.hb.m <- brm(Morisita.z ~ sum.ab * FL_rich + Year + (1|Species) + (1|Site), family = 'Gaussian',
+
+morisita.hb.m <- brm(Morisita.z ~ sum.ab.fl.s * FL_rich + Year + (1|Species) + (1|Site), family = 'Gaussian',
                   prior = prior(normal(0,5), class = 'b'), data = data.morisita.hb)
-morisita.bl.m <- brm(Morisita.bl.z ~ sum.ab * FL_rich + Year + (1|Species) + (1|Site), family = 'Gaussian', # INTERACTION NOT SIGNIFICANT
+morisita.bl.m <- brm(Morisita.bl.z ~ sum.ab.fl.s * FL_rich + Year + (1|Species) + (1|Site), family = 'Gaussian', # INTERACTION NOT SIGNIFICANT
                   prior = prior(normal(0,5), class = 'b'), data = data.morisita.bl)
+# morisita.hb.m.a <- brm(Morisita.z ~ sum.ab.fl * FL.sum + Year + (1|Species) + (1|Site), family = 'Gaussian',
+#                      prior = prior(normal(0,5), class = 'b'), data = data.morisita.hb)
+# morisita.bl.m.a <- brm(Morisita.bl.z ~ sum.ab.fl * FL.sum + Year + (1|Species) + (1|Site), family = 'Gaussian', # INTERACTION NOT SIGNIFICANT
+#                      prior = prior(normal(0,5), class = 'b'), data = data.morisita.bl)
 summary(morisita.hb.m)
+summary(morisita.bl.m)
 pp_check(morisita.hb.m, ndraws = 100)
 p_direction(morisita.hb.m)
+p_direction(morisita.bl.m)
 pairs(morisita.bl.m)
 conditional_effects(morisita.bl.m)
 
-site_models_500 <- list(ab.m = ab.m, con.m = con.m,
+site_models_500 <- list(con.m = con.m,
                         morisita.bl.m = morisita.bl.m, morisita.hb.m = morisita.hb.m)
 
 
-#save(site_models_500, file = '250130_comm_models.RData')
+save(site_models_500, file = 'Data/Results/250130_comm_models.RData')
 
 
 #### HURDLE MODELS ####
@@ -107,70 +116,62 @@ WB_models_Morisita <- list(dwvb.b = dwvb.b, dwvb.w = dwvb.w,
                            bqcv.b = bqcv.b, bqcv.w = bqcv.w, 
                            abpv.b = abpv.b, abpv.w = abpv.w, abpv.h = abpv.h)
 
+save(WB_models_Morisita, file = 'Data/Results/250304_models_morisita.RData')
 
 ###### connectance
 
-dwvb.b <- brm(bf(DWVB.abs ~ sum.ab.fl + Connectance + Year + (1 |Site) + Species,
-                 hu ~ sum.ab.fl + Connectance + Year + (1 |Site) + Species), family = hurdle_lognormal(), data = data.bb.forhb, prior = 
+dwvb.b <- brm(bf(DWVB.abs ~ sum.ab.fl.s + Connectance.s + Year + (1 |Site) + Species,
+                 hu ~ sum.ab.fl.s + Connectance.s + Year + (1 |Site) + Species), family = hurdle_lognormal(), data = data.bb.forhb, prior = 
                 c(prior(normal(0,2), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b'),
                   prior(exponential(1), class = 'sd', dpar = 'hu'),
                   prior(exponential(1), class = 'sd')), sample_prior = TRUE)
-dwvb.w <- brm(bf(DWVB.abs ~ sum.ab.fl +  Connectance + Year + (1 |Site) + (1|Species),
-                 hu ~ sum.ab.fl +  Connectance + Year + (1 |Site)+ (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
-                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b'),
-                  prior(exponential(1), class = 'sd', dpar = 'hu'),
-                  prior(exponential(1), class = 'sd')), sample_prior = TRUE)
-dwvb.h <- brm(bf(DWVB.abs ~ sum.ab.fl +  Connectance + Year + (1 |Site),
-                 hu ~ sum.ab.fl +  Connectance + Year + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+dwvb.w <- brm(bf(DWVB.abs ~ sum.ab.fl.s +  Connectance.s + Year + (1 |Site) + (1|Species),
+                 hu ~ sum.ab.fl.s +  Connectance.s + Year + (1 |Site)+ (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
                 c(prior(normal(0,2), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b'),
                   prior(exponential(1), class = 'sd', dpar = 'hu'),
                   prior(exponential(1), class = 'sd')), sample_prior = TRUE)
 
 
-bqcv.b <- brm(bf(BQCV.abs ~ sum.ab.fl +  Connectance + Year + (1 |Site) + Species,
-                 hu ~ sum.ab.fl +  Connectance + Year + (1 |Site)+ Species), family = hurdle_lognormal(), data = data.bb.forhb, prior =
+bqcv.b <- brm(bf(BQCV.abs ~ sum.ab.fl.s +  Connectance.s + Year + (1 |Site) + Species,
+                 hu ~ sum.ab.fl.s +  Connectance.s + Year + (1 |Site)+ Species), family = hurdle_lognormal(), data = data.bb.forhb, prior =
                 c(prior(normal(0,2), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b'),
                   prior(exponential(1), class = 'sd', dpar = 'hu'),
                   prior(exponential(1), class = 'sd')), sample_prior = TRUE)
-bqcv.w <- brm(bf(BQCV.abs ~ sum.ab.fl +  Connectance + Year + (1 |Site) + (1|Species),
-                 hu ~ sum.ab.fl +  Connectance + Year + (1 |Site) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior =
-                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b'),
-                  prior(exponential(1), class = 'sd', dpar = 'hu'),
-                  prior(exponential(1), class = 'sd')), sample_prior = TRUE)
-bqcv.h <- brm(bf(BQCV.abs ~ sum.ab.fl +  Connectance + Year + (1 |Site)), family = lognormal(), data = data.hb, prior =
-                c(prior(normal(0,5), class = 'b'),
-                  prior(exponential(1), class = 'sd')), sample_prior = TRUE)
-
-abpv.b <- brm(bf(ABPV.abs ~ sum.ab.fl +  Connectance + Year + (1 |Site) + Species,
-                 hu ~ sum.ab.fl +  Connectance + Year + (1 |Site) + Species), family = hurdle_lognormal(), data = data.bb.nolp, prior = 
-                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b'),
-                  prior(exponential(1), class = 'sd', dpar = 'hu'),
-                  prior(exponential(1), class = 'sd')), sample_prior = TRUE)
-abpv.w <- brm(bf(ABPV.abs ~ sum.ab.fl +  Connectance + Year + (1 |Site) + (1|Species),
-                 hu ~ sum.ab.fl +  Connectance + Year + (1 |Site) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
-                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b'),
-                  prior(exponential(1), class = 'sd', dpar = 'hu'),
-                  prior(exponential(1), class = 'sd')), sample_prior = TRUE)
-abpv.h <- brm(bf(ABPV.abs ~ sum.ab.fl +  Connectance + Year + (1 |Site),
-                 hu ~ sum.ab.fl +  Connectance + Year + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+bqcv.w <- brm(bf(BQCV.abs ~ sum.ab.fl.s +  Connectance.s + Year + (1 |Site) + (1|Species),
+                 hu ~ sum.ab.fl.s +  Connectance.s + Year + (1 |Site) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior =
                 c(prior(normal(0,2), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b'),
                   prior(exponential(1), class = 'sd', dpar = 'hu'),
                   prior(exponential(1), class = 'sd')), sample_prior = TRUE)
 
-WB_models_Connectance <- list(dwvb.b = dwvb.b, dwvb.w = dwvb.w, dwvb.h = dwvb.h, 
-                           bqcv.b = bqcv.b, bqcv.w = bqcv.w, bqcv.h = bqcv.h,
-                           abpv.b = abpv.b, abpv.w = abpv.w, abpv.h = abpv.h, abpv.bl = abpv.bl)
+abpv.b <- brm(bf(ABPV.abs ~ sum.ab.fl.s +  Connectance.s + Year + (1 |Site) + Species,
+                 hu ~ sum.ab.fl.s +  Connectance.s + Year + (1 |Site) + Species), family = hurdle_lognormal(), data = data.bb.nolp, prior = 
+                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b'),
+                  prior(exponential(1), class = 'sd', dpar = 'hu'),
+                  prior(exponential(1), class = 'sd')), sample_prior = TRUE)
+abpv.w <- brm(bf(ABPV.abs ~ sum.ab.fl.s +  Connectance.s + Year + (1 |Site) + (1|Species),
+                 hu ~ sum.ab.fl.s +  Connectance.s + Year + (1 |Site) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
+                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b'),
+                  prior(exponential(1), class = 'sd', dpar = 'hu'),
+                  prior(exponential(1), class = 'sd')), sample_prior = TRUE)
+abpv.h <- brm(bf(ABPV.abs ~ sum.ab.fl.s +  Connectance.s + Year + (1 |Site),
+                 hu ~ sum.ab.fl.s +  Connectance.s + Year + (1 |Site)), family = hurdle_lognormal(), data = data.hb, prior = 
+                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b'),
+                  prior(exponential(1), class = 'sd', dpar = 'hu'),
+                  prior(exponential(1), class = 'sd')), sample_prior = TRUE)
+
+WB_models_Connectance <- list(dwvb.b = dwvb.b, dwvb.w = dwvb.w, 
+                           bqcv.b = bqcv.b, bqcv.w = bqcv.w, 
+                           abpv.b = abpv.b, abpv.w = abpv.w, abpv.h = abpv.h)
 
 
-#save(WB_models_Connectance, WB_models_Morisita,WB_models_Connectance_sp, file = '250304_models_mor_con_sep.RData')
+save(WB_models_Connectance, file = 'Data/Results/250304_models_connectance.RData')
 
 
 ### PAIRS PLOTS

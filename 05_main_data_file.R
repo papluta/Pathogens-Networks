@@ -34,12 +34,9 @@ hb.pat <- data.pathogen.both %>% filter(Species == 'Apis mellifera') %>% mutate(
   mutate(dwvb.f = log(dwvb.p * dwvb.q.p * sum/FL.sum/10000 + 1),
          bqcv.f = log(bqcv.p * bqcv.q.p * sum/FL.sum/10000 + 1),
          sbv.f = log(sbv.p * sbv.q.p * sum/FL.sum/10000 + 1),
-         abpv.f = log(abpv.p * abpv.q.p * sum/FL.sum/10000 + 1)) %>% 
-    mutate(dwvb.f2 = dwvb.p * log1p(dwvb.q.p) * sum/FL.sum/10000,
-         bqcv.f2 = bqcv.p * log1p(bqcv.q.p) * sum/FL.sum/10000,
-         sbv.f2 = sbv.p * log1p(sbv.q.p) * sum/FL.sum/10000,
-         abpv.f2 = abpv.p * log1p(abpv.q.p) * sum/FL.sum/10000) %>% 
-  select(Site, Year, dwvb.f, bqcv.f, dwvb.f2, bqcv.f2)
+         abpv.f = log(abpv.p * abpv.q.p * sum/FL.sum/10000 + 1),
+         hb.dens = sum/FL.sum/10000) %>% 
+  select(Site, Year, dwvb.f, bqcv.f, hb.dens)
 
 
 bl.pat <- data.pathogen.both %>% filter(Species == 'Bombus lapidarius') %>% mutate(across(DWVB.abs:ABPV.abs, function(x) ifelse(x == 0, NA, x))) %>% 
@@ -55,11 +52,7 @@ bl.pat <- data.pathogen.both %>% filter(Species == 'Bombus lapidarius') %>% muta
          bqcv.bl.f = log(bqcv.p * sum/FL.sum/10000 * bqcv.q.p + 1),
          sbv.bl.f = log(sbv.p * sum/FL.sum/10000 * sbv.q.p + 1),
          abpv.bl.f = log(abpv.p * sum/FL.sum/10000 * abpv.q.p + 1)) %>% 
-  mutate(dwvb.f2 = dwvb.p * log1p(dwvb.q.p) * sum/FL.sum/10000,
-         bqcv.f2 = bqcv.p * log1p(bqcv.q.p) * sum/FL.sum/10000,
-         sbv.bl.f2 = sbv.p * log1p(sbv.q.p) * sum/FL.sum/10000,
-         abpv.bl.f2 = abpv.p * log1p(abpv.q.p) * sum/FL.sum/10000) %>% 
-  select(Site, Year, abpv.bl.f, abpv.bl.f2)
+  select(Site, Year, abpv.bl.f)
 
 
 ### COMBINING THE DATA
@@ -137,13 +130,13 @@ data.nobl <- data.both %>% filter(Species != 'Bombus lapidarius') %>% ungroup() 
 
 
 data.site <- data.both %>% ungroup() %>% 
-  distinct(Site, Year, Density, Connectance,FL.sum, FL_rich, Bee_rich, sum.ab, sum.ab.fl) %>%
-  mutate(FL.sum = scale(FL.sum)[,1], sum.ab.fl = scale(sum.ab.fl)[,1]) 
+  distinct(Site, Year, Density, Connectance,FL.sum, FL_rich, Bee_rich, sum.ab, sum.ab.fl, hb.dens) %>%
+  mutate(FL.sum.s = scale(FL.sum)[,1], sum.ab.fl.s = scale(sum.ab.fl)[,1]) 
 
-data.morisita.bl <- data.both %>% ungroup() %>% distinct(Site, Year, Density, Species, Morisita.bl.z, FL.sum, FL_rich, sum.ab, sum.ab.fl, Bee_rich) %>% filter(Species != 'Bombus lapidarius') %>%
-  filter(Morisita.bl.z > -12) %>% mutate(across(Morisita.bl.z:sum.ab.fl, ~scale(.)[,1]))
-data.morisita.hb <- data.both %>% ungroup() %>% distinct(Site, Year, Density, Species, Morisita.z, FL.sum, FL_rich, sum.ab, sum.ab.fl, Bee_rich) %>% filter(Species != 'Apis mellifera') %>%
-  filter(Morisita.z > -8) %>% mutate(across(Morisita.z:sum.ab.fl, ~scale(.)[,1]))
+data.morisita.bl <- data.both %>% ungroup() %>% distinct(Site, Year, Density, Species, Morisita.bl.z, FL.sum, sum.ab, sum.ab.fl, FL_rich, Bee_rich) %>% filter(Species != 'Bombus lapidarius') %>%
+  filter(Morisita.bl.z > -12) %>% mutate(across(Morisita.bl.z:sum.ab.fl, ~scale(.)[,1], .names = "{.col}.s"))
+data.morisita.hb <- data.both %>% ungroup() %>% distinct(Site, Year, Density, Species, Morisita.z, FL.sum, sum.ab, sum.ab.fl, FL_rich, Bee_rich) %>% filter(Species != 'Apis mellifera') %>%
+  filter(Morisita.z > -8) %>% mutate(across(Morisita.z:sum.ab.fl, ~scale(.)[,1], .names = "{.col}.s"))
 
 #dotchart(data.morisita.bl$Morisita.bl.z)
 # data.closeness <- data.both %>% ungroup() %>% distinct(Site, Year, Density, Closeness.AP, Closeness.BL, HB_per_agr, FL_per_agr)
