@@ -217,7 +217,7 @@ r0_func_fac <- function(data.matrix.raw, inter.niche.ex, inter.niche.null.ex, sp
     #result_com = list(r0 = result, transmission = transmission)
   }
   # remove main host
-  data.matrix2 = data.matrix.raw %>% filter(species != species_out)
+  data.matrix2 = data.matrix.raw %>% filter(!species %in% species_out)
   transmission2 = as.data.frame(transmission) %>% filter(row.names(transmission) %in% data.matrix2$species)
   transmission2 = as.data.frame(transmission2) %>% select(rownames(transmission2))
   r02 = as.data.frame(result)  %>% filter(row.names(result) %in% data.matrix2$species)

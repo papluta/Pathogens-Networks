@@ -11,6 +11,7 @@ library(tidyverse)
 library(ggplot2)
 library(cowplot)
 library(bayestestR)
+library(tidybayes)
 
 #######################################
 ####### RAW PREVALENCE AND LOAD #######
