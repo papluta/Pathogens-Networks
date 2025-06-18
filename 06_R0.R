@@ -278,14 +278,14 @@ r0.dwvb.main.2021.sp = r0.dwvb.main.2021 %>% group_by(Species) %>%
   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
 
-r0.dwvb.alt.2021 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
-  rename(Species = rowname) %>% group_by(Site, Species) %>% 
-  summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
-            mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
-
-r0.dwvb.alt.2021.sp = r0.dwvb.alt.2021 %>% group_by(Species) %>% 
-  summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
-            prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
+# r0.dwvb.alt.2021 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
+#   rename(Species = rowname) %>% group_by(Site, Species) %>% 
+#   summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
+#             mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
+# 
+# r0.dwvb.alt.2021.sp = r0.dwvb.alt.2021 %>% group_by(Species) %>% 
+#   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
+#             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
 
 
 ### 2022 (full set)
@@ -320,14 +320,14 @@ r0.dwvb.main.2022.sp = r0.dwvb.main.2022 %>% group_by(Species) %>%
   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
 
-r0.dwvb.alt.2022 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
-  rename(Species = rowname) %>% group_by(Site, Species) %>% 
-  summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
-            mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
-
-r0.dwvb.alt.2022.sp = r0.dwvb.alt.2022 %>% group_by(Species) %>% 
-  summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
-            prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
+# r0.dwvb.alt.2022 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
+#   rename(Species = rowname) %>% group_by(Site, Species) %>% 
+#   summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
+#             mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
+# 
+# r0.dwvb.alt.2022.sp = r0.dwvb.alt.2022 %>% group_by(Species) %>% 
+#   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
+#             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
 
 
 #### BQCV ####
@@ -364,14 +364,14 @@ r0.bqcv.main.2021.sp = r0.bqcv.main.2021 %>% group_by(Species) %>%
   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
 
-r0.bqcv.alt.2021 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
-  rename(Species = rowname) %>% group_by(Site, Species) %>% 
-  summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
-            mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
-
-r0.bqcv.alt.2021.sp = r0.bqcv.alt.2021 %>% group_by(Species) %>% 
-  summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
-            prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
+# r0.bqcv.alt.2021 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
+#   rename(Species = rowname) %>% group_by(Site, Species) %>% 
+#   summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
+#             mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
+# 
+# r0.bqcv.alt.2021.sp = r0.bqcv.alt.2021 %>% group_by(Species) %>% 
+#   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
+#             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
 
 
 ### 2022 (full set)
@@ -406,14 +406,14 @@ r0.bqcv.main.2022.sp = r0.bqcv.main.2022 %>% group_by(Species) %>%
   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
 
-r0.bqcv.alt.2022 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
-  rename(Species = rowname) %>% group_by(Site, Species) %>% 
-  summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
-            mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
-
-r0.bqcv.alt.2022.sp = r0.bqcv.alt.2022 %>% group_by(Species) %>% 
-  summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
-            prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
+# r0.bqcv.alt.2022 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
+#   rename(Species = rowname) %>% group_by(Site, Species) %>% 
+#   summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
+#             mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
+# 
+# r0.bqcv.alt.2022.sp = r0.bqcv.alt.2022 %>% group_by(Species) %>% 
+#   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
+#             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
 
 
 #### ABPV
@@ -450,14 +450,14 @@ r0.abpv.main.2021.sp = r0.abpv.main.2021 %>% group_by(Species) %>%
   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
 
-r0.abpv.alt.2021 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
-  rename(Species = rowname) %>% group_by(Site, Species) %>% 
-  summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
-            mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
-
-r0.abpv.alt.2021.sp = r0.abpv.alt.2021 %>% group_by(Species) %>% 
-  summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
-            prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
+# r0.abpv.alt.2021 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
+#   rename(Species = rowname) %>% group_by(Site, Species) %>% 
+#   summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
+#             mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
+# 
+# r0.abpv.alt.2021.sp = r0.abpv.alt.2021 %>% group_by(Species) %>% 
+#   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
+#             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
 
 ### 2022 (full set)
 mat.dat = dat_into_matrix(abundance.2022, true.prev.2022, data2022, virus = 'abpv')
@@ -490,14 +490,14 @@ r0.abpv.main.2022.sp = r0.abpv.main.2022 %>% group_by(Species) %>%
   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
 
-r0.abpv.alt.2022 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
-  rename(Species = rowname) %>% group_by(Site, Species) %>% 
-  summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
-            mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
-
-r0.abpv.alt.2022.sp = r0.abpv.alt.2022 %>% group_by(Species) %>% 
-  summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
-            prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
+# r0.abpv.alt.2022 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
+#   rename(Species = rowname) %>% group_by(Site, Species) %>% 
+#   summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
+#             mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
+# 
+# r0.abpv.alt.2022.sp = r0.abpv.alt.2022 %>% group_by(Species) %>% 
+#   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
+#             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
 
 #### SBV ####
 
@@ -593,13 +593,13 @@ r0.main.host.sp <- list(r0.dwvb.main.2021.sp = r0.dwvb.main.2021.sp, r0.dwvb.mai
                         r0.bqcv.main.2021.sp = r0.bqcv.main.2021.sp, r0.bqcv.main.2022.sp = r0.bqcv.main.2022.sp, 
                         r0.abpv.main.2021.sp = r0.abpv.main.2021.sp, r0.abpv.main.2022.sp = r0.abpv.main.2022.sp)
 
-r0.alt.host = list(r0.dwvb.alt.2021 = r0.dwvb.alt.2021, r0.dwvb.alt.2022 = r0.dwvb.alt.2022, 
-                   r0.bqcv.alt.2021 = r0.bqcv.alt.2021, r0.bqcv.alt.2022 = r0.bqcv.alt.2022, 
-                   r0.abpv.alt.2021 = r0.abpv.alt.2021, r0.abpv.alt.2022 = r0.abpv.alt.2022)
-
-r0.alt.host.sp <- list(r0.dwvb.alt.2021.sp = r0.dwvb.alt.2021.sp, r0.dwvb.alt.2022.sp = r0.dwvb.alt.2022.sp, 
-                        r0.bqcv.alt.2021.sp = r0.bqcv.alt.2021.sp, r0.bqcv.alt.2022.sp = r0.bqcv.alt.2022.sp, 
-                        r0.abpv.alt.2021.sp = r0.abpv.alt.2021.sp, r0.abpv.alt.2022.sp = r0.abpv.alt.2022.sp)
+# r0.alt.host = list(r0.dwvb.alt.2021 = r0.dwvb.alt.2021, r0.dwvb.alt.2022 = r0.dwvb.alt.2022, 
+#                    r0.bqcv.alt.2021 = r0.bqcv.alt.2021, r0.bqcv.alt.2022 = r0.bqcv.alt.2022, 
+#                    r0.abpv.alt.2021 = r0.abpv.alt.2021, r0.abpv.alt.2022 = r0.abpv.alt.2022)
+# 
+# r0.alt.host.sp <- list(r0.dwvb.alt.2021.sp = r0.dwvb.alt.2021.sp, r0.dwvb.alt.2022.sp = r0.dwvb.alt.2022.sp, 
+#                         r0.bqcv.alt.2021.sp = r0.bqcv.alt.2021.sp, r0.bqcv.alt.2022.sp = r0.bqcv.alt.2022.sp, 
+#                         r0.abpv.alt.2021.sp = r0.abpv.alt.2021.sp, r0.abpv.alt.2022.sp = r0.abpv.alt.2022.sp)
 
 #save(r0.main.host,r0.main.host.sp, r0.alt.host, r0.alt.host.sp, file = 'Data/250260R0_results.RData')
 
@@ -607,74 +607,74 @@ r0.alt.host.sp <- list(r0.dwvb.alt.2021.sp = r0.dwvb.alt.2021.sp, r0.dwvb.alt.20
 
 ### comaparing simulated prevalence
 
-# dwvb.hb.b = sim.ms %>% select(Species, sim.m_dwvb, prev.m_dwvb) %>% pivot_longer(cols = sim.m_dwvb:prev.m_dwvb, names_to = 'Type', values_to = 'Prev') %>%
-#   mutate(Species = sub('\n',' ', Species)) %>% filter(Species != 'Apis mellifera')
-# 
-# mod.dwvb.hb = brm(Prev ~ Type, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'b'),
-#                                                                prior(normal(0,1), class = 'Intercept')), data = dwvb.hb.b)
-# mod.dwvb.hb.null = brm(Prev ~ 1, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'Intercept')), data = dwvb.hb.b)
-# bayes_factor(mod.dwvb.hb.null , mod.dwvb.hb)
-# pp_check(mod.dwvb.hb, ndraws = 100)
-# hypothesis(mod.dwvb.hb, "Typesim.m_dwvb = 0")
-# 
-# dwvb.bl.b = sim.ms.alt %>% select(Species, sim.m_dwvb) %>% left_join(sim.ms %>% select(Species, prev.m_dwvb) %>%
-#                                                                      mutate(Species = sub('\n',' ', Species)), by = 'Species') %>% 
-#   pivot_longer(cols = sim.m_dwvb:prev.m_dwvb, names_to = 'Type', values_to = 'Prev') %>%
-#   mutate(Species = sub('\n',' ', Species)) %>% filter(Species != 'Bombus lapidarius')
-# 
-# mod.dwvb.bl = brm(Prev ~ Type, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'b'),
-#                                                                             prior(normal(0,1), class = 'Intercept')), data = dwvb.bl.b)
-# mod.dwvb.bl.null = brm(Prev ~ 1, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'Intercept')), data = dwvb.bl.b)
-# bayes_factor(mod.dwvb.bl.null, mod.dwvb.bl)
-# bayes_factor(mod.dwvb.hb, mod.dwvb.bl)
-# p_direction(mod.dwvb.hb)
-# 
-# ####
-# 
-# bqcv.hb.b = sim.ms %>% select(Species, sim.m_bqcv, prev.m_bqcv) %>% pivot_longer(cols = sim.m_bqcv:prev.m_bqcv, names_to = 'Type', values_to = 'Prev') %>%
-#   mutate(Species = sub('\n',' ', Species)) %>% filter(Species != 'Apis mellifera')
-# 
-# mod.bqcv.hb = brm(Prev ~ Type, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'b'),
-#                                                                             prior(normal(0,1), class = 'Intercept')), data = bqcv.hb.b)
-# mod.bqcv.hb.null = brm(Prev ~ 1, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'Intercept')), data = bqcv.hb.b)
-# bayes_factor(mod.bqcv.hb.null , mod.bqcv.hb)
-# pp_check(mod.bqcv.hb, ndraws = 100)
-# hypothesis(mod.bqcv.hb, "Typesim.m_bqcv = 0")
-# 
-# bqcv.bl.b = sim.ms.alt %>% select(Species, sim.m_bqcv) %>% left_join(sim.ms %>% select(Species, prev.m_bqcv) %>%
-#                                                                        mutate(Species = sub('\n',' ', Species)), by = 'Species') %>% 
-#   pivot_longer(cols = sim.m_bqcv:prev.m_bqcv, names_to = 'Type', values_to = 'Prev') %>%
-#   mutate(Species = sub('\n',' ', Species)) %>% filter(Species != 'Bombus lapidarius')
-# 
-# mod.bqcv.bl = brm(Prev ~ Type, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'b'),
-#                                                                             prior(normal(0,1), class = 'Intercept')), data = bqcv.bl.b)
-# mod.bqcv.bl.null = brm(Prev ~ 1, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'Intercept')), data = bqcv.bl.b)
-# bayes_factor(mod.bqcv.bl.null, mod.bqcv.bl)
-# bayes_factor(mod.bqcv.hb, mod.bqcv.bl)
-# bayes_factor(mod.bqcv.bl, mod.bqcv.hb)
-# p_direction(mod.bqcv.hb)
-# 
-# ####
-# 
-# abpv.hb.b = sim.ms.alt %>% select(Species, sim.m_abpv) %>% left_join(sim.ms %>% select(Species, prev.m_abpv) %>%
-#                                                                        mutate(Species = sub('\n',' ', Species)), by = 'Species') %>% 
-#   pivot_longer(cols = sim.m_abpv:prev.m_abpv, names_to = 'Type', values_to = 'Prev') %>%
-#   mutate(Species = sub('\n',' ', Species)) %>% filter(Species != 'Apis mellifera')
-# 
-# mod.abpv.hb = brm(Prev ~ Type, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'b'),
-#                                                                             prior(normal(0,1), class = 'Intercept')), data = abpv.hb.b)
-# mod.abpv.hb.null = brm(Prev ~ 1, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'Intercept')), data = abpv.hb.b)
-# bayes_factor(mod.abpv.hb.null , mod.abpv.hb)
-# pp_check(mod.abpv.hb, ndraws = 100)
-# hypothesis(mod.abpv.hb, "Typesim.m_abpv = 0")
-# 
-# abpv.bl.b = sim.ms %>% select(Species, sim.m_abpv, prev.m_abpv) %>% 
-#   pivot_longer(cols = sim.m_abpv:prev.m_abpv, names_to = 'Type', values_to = 'Prev') %>%
-#   mutate(Species = sub('\n',' ', Species)) %>% filter(Species != 'Bombus lapidarius')
-# 
-# mod.abpv.bl = brm(Prev ~ Type, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'b'),
-#                                                                             prior(normal(0,1), class = 'Intercept')), data = abpv.bl.b)
-# mod.abpv.bl.null = brm(Prev ~ 1, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'Intercept')), data = abpv.bl.b)
-# bayes_factor(mod.abpv.bl.null, mod.abpv.bl)
-# bayes_factor(mod.abpv.bl, mod.abpv.hb)
-# p_direction(mod.abpv.hb)
+dwvb.hb.b = sim.ms %>% select(Species, sim.m_dwvb, prev.m_dwvb) %>% pivot_longer(cols = sim.m_dwvb:prev.m_dwvb, names_to = 'Type', values_to = 'Prev') %>%
+  mutate(Species = sub('\n',' ', Species)) %>% filter(Species != 'Apis mellifera')
+
+mod.dwvb.hb = brm(Prev ~ Type, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'b'),
+                                                               prior(normal(0,1), class = 'Intercept')), data = dwvb.hb.b)
+mod.dwvb.hb.null = brm(Prev ~ 1, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'Intercept')), data = dwvb.hb.b)
+bayes_factor(mod.dwvb.hb.null , mod.dwvb.hb)
+pp_check(mod.dwvb.hb, ndraws = 100)
+hypothesis(mod.dwvb.hb, "Typesim.m_dwvb = 0")
+
+dwvb.bl.b = sim.ms.alt %>% select(Species, sim.m_dwvb) %>% left_join(sim.ms %>% select(Species, prev.m_dwvb) %>%
+                                                                     mutate(Species = sub('\n',' ', Species)), by = 'Species') %>%
+  pivot_longer(cols = sim.m_dwvb:prev.m_dwvb, names_to = 'Type', values_to = 'Prev') %>%
+  mutate(Species = sub('\n',' ', Species)) %>% filter(Species != 'Bombus lapidarius')
+
+mod.dwvb.bl = brm(Prev ~ Type, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'b'),
+                                                                            prior(normal(0,1), class = 'Intercept')), data = dwvb.bl.b)
+mod.dwvb.bl.null = brm(Prev ~ 1, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'Intercept')), data = dwvb.bl.b)
+bayes_factor(mod.dwvb.bl.null, mod.dwvb.bl)
+bayes_factor(mod.dwvb.hb, mod.dwvb.bl)
+p_direction(mod.dwvb.hb)
+
+####
+
+bqcv.hb.b = sim.ms %>% select(Species, sim.m_bqcv, prev.m_bqcv) %>% pivot_longer(cols = sim.m_bqcv:prev.m_bqcv, names_to = 'Type', values_to = 'Prev') %>%
+  mutate(Species = sub('\n',' ', Species)) %>% filter(Species != 'Apis mellifera')
+
+mod.bqcv.hb = brm(Prev ~ Type, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'b'),
+                                                                            prior(normal(0,1), class = 'Intercept')), data = bqcv.hb.b)
+mod.bqcv.hb.null = brm(Prev ~ 1, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'Intercept')), data = bqcv.hb.b)
+bayes_factor(mod.bqcv.hb.null , mod.bqcv.hb)
+pp_check(mod.bqcv.hb, ndraws = 100)
+hypothesis(mod.bqcv.hb, "Typesim.m_bqcv = 0")
+
+bqcv.bl.b = sim.ms.alt %>% select(Species, sim.m_bqcv) %>% left_join(sim.ms %>% select(Species, prev.m_bqcv) %>%
+                                                                       mutate(Species = sub('\n',' ', Species)), by = 'Species') %>%
+  pivot_longer(cols = sim.m_bqcv:prev.m_bqcv, names_to = 'Type', values_to = 'Prev') %>%
+  mutate(Species = sub('\n',' ', Species)) %>% filter(Species != 'Bombus lapidarius')
+
+mod.bqcv.bl = brm(Prev ~ Type, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'b'),
+                                                                            prior(normal(0,1), class = 'Intercept')), data = bqcv.bl.b)
+mod.bqcv.bl.null = brm(Prev ~ 1, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'Intercept')), data = bqcv.bl.b)
+bayes_factor(mod.bqcv.bl.null, mod.bqcv.bl)
+bayes_factor(mod.bqcv.hb, mod.bqcv.bl)
+bayes_factor(mod.bqcv.bl, mod.bqcv.hb)
+p_direction(mod.bqcv.hb)
+
+####
+
+abpv.hb.b = sim.ms.alt %>% select(Species, sim.m_abpv) %>% left_join(sim.ms %>% select(Species, prev.m_abpv) %>%
+                                                                       mutate(Species = sub('\n',' ', Species)), by = 'Species') %>%
+  pivot_longer(cols = sim.m_abpv:prev.m_abpv, names_to = 'Type', values_to = 'Prev') %>%
+  mutate(Species = sub('\n',' ', Species)) %>% filter(Species != 'Apis mellifera')
+
+mod.abpv.hb = brm(Prev ~ Type, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'b'),
+                                                                            prior(normal(0,1), class = 'Intercept')), data = abpv.hb.b)
+mod.abpv.hb.null = brm(Prev ~ 1, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'Intercept')), data = abpv.hb.b)
+bayes_factor(mod.abpv.hb.null , mod.abpv.hb)
+pp_check(mod.abpv.hb, ndraws = 100)
+hypothesis(mod.abpv.hb, "Typesim.m_abpv = 0")
+
+abpv.bl.b = sim.ms %>% select(Species, sim.m_abpv, prev.m_abpv) %>%
+  pivot_longer(cols = sim.m_abpv:prev.m_abpv, names_to = 'Type', values_to = 'Prev') %>%
+  mutate(Species = sub('\n',' ', Species)) %>% filter(Species != 'Bombus lapidarius')
+
+mod.abpv.bl = brm(Prev ~ Type, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'b'),
+                                                                            prior(normal(0,1), class = 'Intercept')), data = abpv.bl.b)
+mod.abpv.bl.null = brm(Prev ~ 1, family = Beta(), sample_prior = T, prior = c(prior(normal(0,1), class = 'Intercept')), data = abpv.bl.b)
+bayes_factor(mod.abpv.bl.null, mod.abpv.bl)
+bayes_factor(mod.abpv.bl, mod.abpv.hb)
+p_direction(mod.abpv.hb)

@@ -29,26 +29,29 @@ set.seed(99)
 
 con.m <- brm(Connectance ~ FL_rich + sum.ab.fl.s + Year + (1|Site), family = Beta(), # INTERACTION NOT SIGNIFICANT
             prior = prior(normal(0,5), class = 'b'), data = data.site)
-# con.m.a <- brm(Connectance ~ FL.sum + sum.ab.fl + Year + (1|Site), family = Beta(), # INTERACTION NOT SIGNIFICANT
-#              prior = prior(normal(0,5), class = 'b'), data = data.site)
+con.m.a <- brm(Connectance ~ FL.sum + sum.ab.fl + Year + (1|Site), family = Beta(), # INTERACTION NOT SIGNIFICANT
+             prior = prior(normal(0,5), class = 'b'), data = data.site)
 summary(con.m)
 pp_check(con.m, ndraws = 100)
 p_direction(con.m)
 pairs(con.m)
 
-con.m.a.waic = waic(con.m.a)
 con.m.r.waic = waic(con.m)
+con.m.a.waic = waic(con.m.a)
 loo_compare(con.m.a.waic, con.m.r.waic)
 
+print(c(con.m.r.waic$estimates['waic',], con.m.a.waic$estimates['waic',]))
+
+con.m.r.waic$estimates['waic','Estimate'] - con.m.a.waic$estimates['waic','Estimate']
 
 morisita.hb.m <- brm(Morisita.z ~ sum.ab.fl.s * FL_rich + Year + (1|Species) + (1|Site), family = 'Gaussian',
                   prior = prior(normal(0,5), class = 'b'), data = data.morisita.hb)
 morisita.bl.m <- brm(Morisita.bl.z ~ sum.ab.fl.s * FL_rich + Year + (1|Species) + (1|Site), family = 'Gaussian', # INTERACTION NOT SIGNIFICANT
                   prior = prior(normal(0,5), class = 'b'), data = data.morisita.bl)
-# morisita.hb.m.a <- brm(Morisita.z ~ sum.ab.fl * FL.sum + Year + (1|Species) + (1|Site), family = 'Gaussian',
-#                      prior = prior(normal(0,5), class = 'b'), data = data.morisita.hb)
-# morisita.bl.m.a <- brm(Morisita.bl.z ~ sum.ab.fl * FL.sum + Year + (1|Species) + (1|Site), family = 'Gaussian', # INTERACTION NOT SIGNIFICANT
-#                      prior = prior(normal(0,5), class = 'b'), data = data.morisita.bl)
+morisita.hb.m.a <- brm(Morisita.z ~ sum.ab.fl * FL.sum + Year + (1|Species) + (1|Site), family = 'Gaussian',
+                     prior = prior(normal(0,5), class = 'b'), data = data.morisita.hb)
+morisita.bl.m.a <- brm(Morisita.bl.z ~ sum.ab.fl * FL.sum + Year + (1|Species) + (1|Site), family = 'Gaussian', # INTERACTION NOT SIGNIFICANT
+                     prior = prior(normal(0,5), class = 'b'), data = data.morisita.bl)
 summary(morisita.hb.m)
 summary(morisita.bl.m)
 pp_check(morisita.hb.m, ndraws = 100)
@@ -60,6 +63,19 @@ conditional_effects(morisita.bl.m)
 site_models_500 <- list(con.m = con.m,
                         morisita.bl.m = morisita.bl.m, morisita.hb.m = morisita.hb.m)
 
+morhb.m.r.waic = waic(morisita.hb.m)
+morhb.m.a.waic = waic(morisita.hb.m.a)
+loo_compare(morhb.m.a.waic, morhb.m.r.waic)
+
+print(c(morhb.m.r.waic$estimates['waic',], morhb.m.a.waic$estimates['waic',]))
+morhb.m.r.waic$estimates['waic','Estimate'] - morhb.m.a.waic$estimates['waic','Estimate']
+
+morbl.m.r.waic = waic(morisita.bl.m)
+morbl.m.a.waic = waic(morisita.bl.m.a)
+loo_compare(morbl.m.a.waic, morbl.m.r.waic)
+
+print(c(morbl.m.r.waic$estimates['waic',], morbl.m.a.waic$estimates['waic',]))
+morbl.m.r.waic$estimates['waic','Estimate'] - morbl.m.a.waic$estimates['waic','Estimate']
 
 save(site_models_500, file = 'Data/Results/250130_comm_models.RData')
 
@@ -80,7 +96,7 @@ dwvb.w <- brm(bf(DWVB.abs ~ dwvb.f.s + Morisita.z.s + Year + (1 |Site) + (1|Spec
                   prior(exponential(1), class = 'sd')), sample_prior = TRUE, control = list(adapt_delta = 0.95))
 
 bqcv.b <- brm(bf(BQCV.abs ~ bqcv.f.s + Morisita.z.s + Year + (1 |Site) + Species,
-                 hu ~ bqcv.f.s + Morisita.z.s + Year + (1 |Site)+ Species), family = hurdle_lognormal(), data = data.bb.nolp, prior =
+                 hu ~ bqcv.f.s + Morisita.z.s + Year + (1 |Site)+ Species), family = hurdle_lognormal(), data = data.bb.forhb, prior =
                 c(prior(normal(0,2), class = 'b', dpar = 'hu'),
                   prior(normal(0,5), class = 'b'),
                   prior(exponential(1), class = 'sd', dpar = 'hu'),
