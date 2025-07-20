@@ -2,46 +2,25 @@ library(readr)
 library(dplyr)
 library(ggplot2)
 library(tidyverse)
+
+
 dens <- read.csv('Data/density.csv')
 
-trans2021 <- read_csv('Data/Transects2021_20230713.csv') %>% filter(run == 2) %>% 
-  rename(Site = Landscape_ID, Run = run, Bee_species = bee_species, Bee_group = bee_group) %>%
-  mutate(Site = sub('Wm', 'WM', Site)) 
-trans2022 <- read_csv('Data/Transects2022_20231110.csv') %>% filter(run == 2) %>% 
-  rename(Site = Landscape_ID, Transect_type = Transect_tpe, Run = run) %>%
-  mutate(Site = sub('Wm', 'WM', Site)) 
+trans2021 <- read_csv('Data/Transects2021.csv')
+trans2022 <- read_csv('Data/Transects2022.csv') 
+
 ### LANDUSE
 
-landuse2021 <- read.csv("Data/Landuse2021_500m_Combee_fieldedge_240930.csv")
+land500.2021 <- read.csv("Data/Landuse2021_500m.csv")
 
-land500.2021 <- landuse2021 %>%
-  mutate(area_ha = area/10000) %>% 
-  mutate(Landscape3 = sub('Wm', 'WM', Landscape3)) %>%
-  group_by(Landscape3,Combi6) %>%
-  summarise(sum=sum(area_ha)) %>%
-  drop_na(Landscape3) %>%
-  filter(Combi6 != '') %>%
-  pivot_wider(names_from = Combi6, values_from = sum) %>%
-  replace(is.na(.), 0) %>%
-  rename(Site = Landscape3) %>%
-  mutate(semi_natur = semi_natur + Grassy_str) %>%
-  select(-Grassy_str) %>%
-  rename(Grassy_str = Fieldedge) # changing name Fieldedge to grassy strip to match the transect file
-
-
-
-source('01_landscape_processing.R')
-
-land500.2022 <- radii[['500m']] %>% select(-`NA`)
+land500.2022 <- read.csv('Data/Landuse2022_500m.csv')
 
 
 ### FLOWER COVER
 hm <- trans2021 %>% distinct(Site, Transect_ID, Run, Transect_type)
-fl.cv.2021 <- read_csv('Data/Flowercover2021_20230713.csv') %>% rename(Run = run, Site = Landscape_ID) %>%  
-  mutate(Site = sub('Wm', 'WM', Site)) %>% 
-  full_join(hm, by = c('Site', 'Run', 'Transect_ID')) %>% 
-  filter(Run == 2) 
-fl.cv.2022 <- read_csv('Data/Flowercover2022.csv') %>% filter(Run == 2)
+fl.cv.2021 <- read_csv('Data/Flowercover2021_20230713.csv')
+fl.cv.2022 <- read_csv('Data/Flowercover2022.csv') 
+
 
 distinct(fl.cv.2021, Transect_type) # the different habitat types
 distinct(fl.cv.2022, Transect_type) # the different habitat types
