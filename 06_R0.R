@@ -499,89 +499,6 @@ r0.abpv.main.2022.sp = r0.abpv.main.2022 %>% group_by(Species) %>%
 #   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
 #             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T), sd.prev = sd(prev, na.rm = T))
 
-#### SBV ####
-
-### 2021 (subset)
-# mat.dat = dat_into_matrix(abundance.2021, true.prev.2021, data2021, virus = 'sbv') %>% filter(site %in% subset)
-# unique(mat.dat$species)
-# mat.dat.list <- split(mat.dat, mat.dat$site)
-# 
-# inter.niche = niche_fun(mat.dat.list, morisita.2021)
-# inter.niche.null = niche_null_fun(mat.dat.list, morisita.zscore2021)
-# 
-# 
-# for (i in 1:length(mat.dat.list)) {
-#   mat.dat.list[[i]] <- mat.dat.list[[i]] %>% filter(species %in% rownames(inter.niche.null[[i]]))
-# }
-# 
-# 
-# boot <- list()
-# for (s in 1:length(mat.dat.list)){
-#   boot[[s]] <- list()
-#   for (i in 1:1000) {
-#     boot[[s]][[i]]  <- r0_func_fac(mat.dat.list[[s]], inter.niche[[s]], inter.niche.null[[s]], species_out = 'Apis mellifera')
-#   }
-# }
-# 
-# 
-# r0.sbv.main.2021 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
-#   rename(Species = rowname) %>% group_by(Site, Species) %>% 
-#   summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
-#             mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T))
-# 
-# r0.sbv.main.2021.sp = r0.sbv.main.2021 %>% group_by(Species) %>% 
-#   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
-#             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T))
-# 
-# r0.sbv.alt.2021 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
-#   rename(Species = rowname) %>% group_by(Site, Species) %>% 
-#   summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
-#             mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T))
-# 
-# r0.sbv.alt.2021.sp = r0.sbv.alt.2021 %>% group_by(Species) %>% 
-#   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
-#             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T))
-# 
-# ### 2022 (full set)
-# mat.dat = dat_into_matrix(abundance.2022, true.prev.2022, data2022, virus = 'sbv')
-# unique(mat.dat$species)
-# mat.dat.list <- split(mat.dat, mat.dat$site)
-# 
-# inter.niche = niche_fun(mat.dat.list, morisita.2021)
-# inter.niche.null = niche_null_fun(mat.dat.list, morisita.zscore2021)
-# 
-# 
-# for (i in 1:length(mat.dat.list)) {
-#   mat.dat.list[[i]] <- mat.dat.list[[i]] %>% filter(species %in% rownames(inter.niche.null[[i]]))
-# }
-# 
-# 
-# boot <- list()
-# for (s in 1:length(mat.dat.list)){
-#   boot[[s]] <- list()
-#   for (i in 1:1000) {
-#     boot[[s]][[i]]  <- r0_func_fac(mat.dat.list[[s]], inter.niche[[s]], inter.niche.null[[s]], species_out = 'Apis mellifera')
-#   }
-# }
-# 
-# 
-# r0.sbv.main.2022 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
-#   rename(Species = rowname) %>% group_by(Site, Species) %>% 
-#   summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
-#             mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T))
-# 
-# r0.sbv.main.2022.sp = r0.sbv.main.2022 %>% group_by(Species) %>% 
-#   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
-#             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T))
-# 
-# r0.sbv.alt.2022 <- boot %>% lapply(function(x) x %>% bind_rows()) %>% bind_rows(.id = 'Site') %>% 
-#   rename(Species = rowname) %>% group_by(Site, Species) %>% 
-#   summarise(mean.r0 = mean(r0, na.rm = T), sd.r0 = sd(r0, na.rm = T), 
-#             mean.prev.no.mh = mean(Prev.no.mh, na.rm = T), mean.prev = mean(prev, na.rm = T))
-# 
-# r0.sbv.alt.2022.sp = r0.sbv.alt.2022 %>% group_by(Species) %>% 
-#   summarise(r0 = mean(mean.r0), sd = sd(mean.r0), prev.no.mh = mean(mean.prev.no.mh, na.rm = T), 
-#             prev.sd.no.mh = sd(mean.prev.no.mh, na.rm = T), prev = mean(mean.prev, na.rm = T))
 
 #######
 
@@ -605,7 +522,8 @@ r0.main.host.sp <- list(r0.dwvb.main.2021.sp = r0.dwvb.main.2021.sp, r0.dwvb.mai
 
 
 
-### comaparing simulated prevalence
+### comparing simulated prevalence
+# data frames from 8_plotting.R
 
 dwvb.hb.b = sim.ms %>% select(Species, sim.m_dwvb, prev.m_dwvb) %>% pivot_longer(cols = sim.m_dwvb:prev.m_dwvb, names_to = 'Type', values_to = 'Prev') %>%
   mutate(Species = sub('\n',' ', Species)) %>% filter(Species != 'Apis mellifera')
