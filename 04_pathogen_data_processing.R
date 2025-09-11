@@ -66,48 +66,40 @@ cutout.wb = w.m + 2*w.sd
 hind.both2 <- hind.both %>% filter(ACTIN < cutout.hb) %>% ## housekeeping gene below the cutout value
   mutate(dwvb = ifelse(!is.na(DWVB) & !is.na(DWVB.SD ), 1, 0), # changing undetected Ct to 0
          bqcv = ifelse(!is.na(BQCV) & !is.na(BQCV.SD ), 1, 0),
-         abpv = ifelse(!is.na(ABPV) & !is.na(ABPV.SD ), 1, 0),
-         sbv = ifelse(!is.na(SBV) & !is.na(SBV.SD ), 1, 0)) %>% 
+         abpv = ifelse(!is.na(ABPV) & !is.na(ABPV.SD ), 1, 0)) %>% 
   mutate(DWVB.abs = ifelse(dwvb == 0 , 0, DWVB.abs), # removing load of samples that did not meet the postive criteria
          BQCV.abs = ifelse(bqcv == 0, 0, BQCV.abs),
-         ABPV.abs = ifelse(abpv == 0, 0, ABPV.abs),
-         SBV.abs = ifelse(sbv == 0, 0, SBV.abs)) %>% 
+         ABPV.abs = ifelse(abpv == 0, 0, ABPV.abs)) %>% 
   dplyr::select(-c(ACTIN:ABPV.SD)) %>%
   mutate(Group = 'hb')
 
 bind.both2 <- bind.both %>% filter(ACTIN < cutout.bb) %>% ## housekeeping gene below the cutout value
   mutate(dwvb = ifelse(!is.na(DWVB) & !is.na(DWVB.SD ), 1, 0), # changing undetected Ct to 0
          bqcv = ifelse(!is.na(BQCV) & !is.na(BQCV.SD ), 1, 0),
-         abpv = ifelse(!is.na(ABPV) & !is.na(ABPV.SD ), 1, 0),
-         sbv = ifelse(!is.na(SBV) & !is.na(SBV.SD ), 1, 0)) %>% 
+         abpv = ifelse(!is.na(ABPV) & !is.na(ABPV.SD ), 1, 0)) %>% 
   mutate(DWVB.abs = ifelse(dwvb == 0 , 0, DWVB.abs), # removing load of samples that did not meet the postive criteria
          BQCV.abs = ifelse(bqcv == 0, 0, BQCV.abs),
-         ABPV.abs = ifelse(abpv == 0, 0, ABPV.abs),
-         SBV.abs = ifelse(sbv == 0, 0, SBV.abs)) %>% 
+         ABPV.abs = ifelse(abpv == 0, 0, ABPV.abs)) %>% 
   dplyr::select(-c(ACTIN:ABPV.SD)) %>%
   mutate(Group = 'bb')
 
 lind.both2 <- lind.both %>% filter(ACTIN < cutout.bl) %>% ## housekeeping gene below the cutout value
   mutate(dwvb = ifelse(!is.na(DWVB) & !is.na(DWVB.SD ), 1, 0), # changing undetected Ct to 0
          bqcv = ifelse(!is.na(BQCV) & !is.na(BQCV.SD ), 1, 0),
-         abpv = ifelse(!is.na(ABPV) & !is.na(ABPV.SD ), 1, 0),
-         sbv = ifelse(!is.na(SBV) & !is.na(SBV.SD ), 1, 0)) %>% 
+         abpv = ifelse(!is.na(ABPV) & !is.na(ABPV.SD ), 1, 0)) %>% 
   mutate(DWVB.abs = ifelse(dwvb == 0 , 0, DWVB.abs), # removing load of samples that did not meet the postive criteria
          BQCV.abs = ifelse(bqcv == 0, 0, BQCV.abs),
-         ABPV.abs = ifelse(abpv == 0, 0, ABPV.abs),
-         SBV.abs = ifelse(sbv == 0, 0, SBV.abs)) %>% 
+         ABPV.abs = ifelse(abpv == 0, 0, ABPV.abs)) %>% 
   dplyr::select(-c(ACTIN:ABPV.SD)) %>%
   mutate(Group = 'bb')
 
 pind.both2 <- pind.both %>% filter(ACTIN < cutout.bp) %>% ## housekeeping gene below the cutout value
   mutate(dwvb = ifelse(!is.na(DWVB) & !is.na(DWVB.SD ), 1, 0), # changing undetected Ct to 0
          bqcv = ifelse(!is.na(BQCV) & !is.na(BQCV.SD ), 1, 0),
-         abpv = ifelse(!is.na(ABPV) & !is.na(ABPV.SD ), 1, 0),
-         sbv = ifelse(!is.na(SBV) & !is.na(SBV.SD ), 1, 0)) %>% 
+         abpv = ifelse(!is.na(ABPV) & !is.na(ABPV.SD ), 1, 0)) %>% 
   mutate(DWVB.abs = ifelse(dwvb == 0 , 0, DWVB.abs), # removing load of samples that did not meet the postive criteria
          BQCV.abs = ifelse(bqcv == 0, 0, BQCV.abs),
-         ABPV.abs = ifelse(abpv == 0, 0, ABPV.abs),
-         SBV.abs = ifelse(sbv == 0, 0, SBV.abs)) %>% 
+         ABPV.abs = ifelse(abpv == 0, 0, ABPV.abs)) %>% 
   dplyr::select(-c(ACTIN:ABPV.SD)) %>%
   mutate(Group = 'bb')
 
@@ -115,12 +107,10 @@ pind.both2 <- pind.both %>% filter(ACTIN < cutout.bp) %>% ## housekeeping gene b
 wind.both2 <- wind.both %>% filter(X28S < cutout.wb) %>% ## housekeeping gene below the cutout value
   mutate(dwvb = ifelse(!is.na(DWVB) & !is.na(DWVB.SD ), 1, 0), # changing undetected Ct to 0
          bqcv = ifelse(!is.na(BQCV) & !is.na(BQCV.SD ), 1, 0),
-         abpv = ifelse(!is.na(ABPV) & !is.na(ABPV.SD ), 1, 0),
-         sbv = ifelse(!is.na(SBV) & !is.na(SBV.SD ), 1, 0)) %>% 
+         abpv = ifelse(!is.na(ABPV) & !is.na(ABPV.SD ), 1, 0)) %>% 
   mutate(DWVB.abs = ifelse(dwvb == 0 , 0, DWVB.abs), # removing load of samples that did not meet the postive criteria
          BQCV.abs = ifelse(bqcv == 0, 0, BQCV.abs),
-         ABPV.abs = ifelse(abpv == 0, 0, ABPV.abs),
-         SBV.abs = ifelse(sbv == 0, 0, SBV.abs)) %>% 
+         ABPV.abs = ifelse(abpv == 0, 0, ABPV.abs)) %>% 
   dplyr::select(-c(X28S:ABPV.SD)) %>%
   mutate(Group = 'wb') %>% mutate(Species = sub('Seladonia tumulorum', 'Halictus tumulorum', Species)) %>% group_by(Species) %>%
   mutate(n_Species = n()) %>% ungroup() %>% filter(n_Species > 2) %>% select(-n_Species)
@@ -128,4 +118,4 @@ wind.both2 <- wind.both %>% filter(X28S < cutout.wb) %>% ## housekeeping gene be
 data.pathogen.both <- rbind(hind.both2, bind.both2, lind.both2, pind.both2, wind.both2) #%>% mutate(across(DWVB.abs:SBV.abs, function(x) x/BUFFER))
 levels(as.factor(data.pathogen.both$Species))
 
-write.csv(data.pathogen.both, file = 'Data/data_pathogen_both.csv', row.names = F)
+#write.csv(data.pathogen.both, file = 'Data/data_pathogen_both.csv', row.names = F)

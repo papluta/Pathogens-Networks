@@ -18,7 +18,7 @@ land500.2022 <- read.csv('Data/Landuse2022_500m.csv')
 
 ### FLOWER COVER
 hm <- trans2021 %>% distinct(Site, Transect_ID, Run, Transect_type)
-fl.cv.2021 <- read_csv('Data/Flowercover2021_20230713.csv')
+fl.cv.2021 <- read_csv('Data/Flowercover2021.csv')
 fl.cv.2022 <- read_csv('Data/Flowercover2022.csv') 
 
 
@@ -43,10 +43,6 @@ fl.cv2.2022 <- fl.cv.2022 %>% group_by(Run, Site, Transect_type) %>% summarise(f
 
 fl.cv2.both <- rbind(fl.cv2.2021, fl.cv2.2022)
 
-ggplot(fl.cv2.both, aes(Transect_type2, flcv.m, fill = as.factor(Transect_type2)))+
-  geom_boxplot()+
-  facet_wrap(~Year)+
-  theme(legend.position = 'none')
 
 
 ## EXTRAPOLATION
@@ -144,4 +140,4 @@ honeybees.both <- rbind(honeybees.2021, honeybees.2022)
 lapidarius.both <- rbind(lapidarius.2021, lapidarius.2022)
 abundance.both <- rbind(abundance.2021, abundance.2022)
 
-save(honeybees.both, lapidarius.both, abundance.both, flower.both, file = 'Data/land_extrapolated.RData')
+#save(honeybees.both, lapidarius.both, abundance.both, flower.both, file = 'Data/land_extrapolated.RData')

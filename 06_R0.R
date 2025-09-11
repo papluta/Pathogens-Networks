@@ -1,7 +1,9 @@
 ### CALCULATING SPECIES R0 BASED ON FENTON ET AL. 2015###
 
 
-source('05_main_data_file.R')
+source('05_main_data_file.R') # rerun also previous scripts (01 - 04)
+
+# re-load data if available
 load('Data/true_prev_R0.RData')
 load('Data/morisita_all.RData')
 
@@ -33,9 +35,9 @@ rstan_options(auto_write = TRUE)
 
 ### 2021
 
-obs.prev.2021 = data2021 %>% select(Sample, Site, Year, Species, dwvb, bqcv, abpv, sbv) %>%
+obs.prev.2021 = data2021 %>% select(Sample, Site, Year, Species, dwvb, bqcv, abpv) %>%
   mutate(Group = case_match(Species, 'Apis mellifera' ~ 'hb', 'Bombus lapidarius' ~ 'bl', 'Bombus terrestris' ~ 'bt', 'Bombus pascuorum' ~ 'bp', .default = 'wb')) %>%
-  pivot_longer(dwvb:sbv, names_to = 'Virus', values_to = 'Presence') %>% group_by(Group, Virus) %>%
+  pivot_longer(dwvb:abpv, names_to = 'Virus', values_to = 'Presence') %>% group_by(Group, Virus) %>%
   summarise(prev = mean(Presence), prev.sd = sd(Presence)) %>% mutate(prev.inv = logit_scaled(prev)) %>% 
   mutate(prev.inv = ifelse(prev.inv == Inf, 3.5, prev.inv)) %>% mutate(prev.inv = round(prev.inv, 2)) %>% mutate(Group = factor(Group, levels = c('hb', 'bl', 'bp', 'bt', 'wb'))) %>%
   arrange(Group)
