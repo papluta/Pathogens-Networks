@@ -36,6 +36,7 @@ posterior_correlation <- function(fit = fit, cor = 0.5) {
   
   cor_df_clean <- cor_df %>%
     filter(var1 < var2) 
+
   
   cor_df_clean %>% filter(correlation > cor |
                             correlation < -1*cor)
@@ -65,12 +66,11 @@ p_direction(con.m)
 pairs(con.m)
 posterior_correlation(con.m)
 
-
 # Beta distribution does not give a good pp_check!
-# morisita.hb.m.rich <- brm(Morisita.hb.ns ~ total_bee_dens.s + FL_rich + Year + (1|Species) + (1|Site), family = Beta(),
+# morisita.hb.m.rich <- brm(Morisita.hb.ns ~ total_bee_dens.s + flower_dens.s + sum_nodes + Year + (1|Species) + (1|Site), family = Beta(),
 #                           prior = c(prior(normal(0,2), class = 'b'),
 #                                     prior(exponential(1), class = 'sd')), data = data.morisita.hb)
-# morisita.bl.m.rich <- brm(Morisita.bl.ns ~ total_bee_dens.s + FL_rich + Year + (1|Species) + (1|Site), family = Beta(), 
+# morisita.bl.m.rich <- brm(Morisita.bl.ns ~ total_bee_dens.s + flower_dens.s + sum_nodes + Year + (1|Species) + (1|Site), family = Beta(), 
 #                           prior = c(prior(normal(0,2), class = 'b'),
 #                                     prior(exponential(1), class = 'sd')), data = data.morisita.bl)
 # 
@@ -82,13 +82,12 @@ morisita.bl.m.s <- brm(Morisita.bl.s ~ total_bee_dens.s + flower_dens.s + sum_no
                           prior = c(prior(normal(0,5), class = 'b')), data = data.morisita.bl, iter = 5000, warmup = 2000, 
 )
 
-
-summary(morisita.hb.s)
-summary(morisita.bl.s)
+summary(morisita.hb.m.s)
+summary(morisita.bl.m.s)
 pp_check(morisita.hb.m.s, ndraws = 100)
 pp_check(morisita.bl.m.s, ndraws = 100)
-pairs(morisita.hb.s)
-pairs(morisita.bl.s)
+pairs(morisita.hb.m.s)
+pairs(morisita.bl.m.s)
 p_direction(morisita.hb.m.s)
 p_direction(morisita.bl.m.s)
 posterior_correlation(morisita.hb.m.s)
