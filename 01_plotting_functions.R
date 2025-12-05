@@ -2,6 +2,9 @@ library(grid)
 library(ggplot2)
 library(cowplot)
 
+date <- format(Sys.Date(), "%y%m%d") # for saving files
+
+
 custom_summary <- function(mod) {
   sum <- summary(mod)[['fixed']] %>% select(Estimate, Est.Error, Bulk_ESS, Tail_ESS) %>% 
     cbind(ci(as_draws_array(mod), ci = 0.95, method = 'ETI') %>% 

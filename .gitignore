@@ -3,5 +3,7 @@
 *.RData
 *.Ruserdata
 *.csv
+*.txt
+*.zip
 Data
 .Rproj.user
