@@ -1,13 +1,13 @@
-load('Data/Results/251126_R0_results.RData')
-load('Data/Results/25112_comm_models.RData')
-load("Data/Results/251201_models_combined_raw.RData")
+## preload data if available - run the scripts if not
+# load('Data/Results/251126_R0_results.RData')
+# load('Data/Results/251126_r0_sensitivity.RData')
+# load('Data/Results/251126_bayes_factor.RData')
+# load('Data/Results/251201_comm_models.RData')
+# load("Data/Results/251201_models_combined_raw.RData")
+# load("Data/Results/251201_models_combined_raw_size.RData")
 
-# source('05_main_data_file.R') 
-source('01_plotting_functions.R')
+source('05_main_data_file.R') 
 
-library(dplyr)
-library(tidyverse)
-library(ggplot2)
 library(openxlsx2)
 library(cowplot)
 library(bayestestR)
@@ -19,7 +19,7 @@ library(tidybayes)
 library(rstan)
 library(bayesplot)
 
-### get phylopics
+### get phylopics of the bee groups
 
 img_AM <- get_phylopic(uuid = get_uuid(name = 'Apis mellifera', n = 1))
 img_BT <- get_phylopic(uuid = get_uuid(name = 'Bombus', n = 2)[2])
@@ -31,6 +31,7 @@ img_LS <- get_phylopic(uuid = get_uuid(name = 'Lasioglossum sordidum', n = 1))
 ###   TABLES  ###
 #################
 
+# create each table and then combine into the supplementary_tables.xslx 
 
 # Table S1
 
@@ -49,7 +50,7 @@ t1 <- list(hind.2021.2, hind.2022.2,
   left_join(coord, by = "Site") %>%
   select(Site, Long, Lat, starts_with("2021"), starts_with("2022"))
 
-write.csv(t1, file = paste0("Data/Results/", date, "_t1.csv"), row.names = F)
+#write.csv(t1, file = paste0("Data/Results/", date, "_t1.csv"), row.names = F)
 
 # Table S2
 
@@ -65,7 +66,7 @@ t2 <- data.pathogen.both  %>%
   rename_with(., tolower) %>%
   select(species, n, starts_with("dwvb"), starts_with("bqcv"), starts_with("abpv"))
 
-write.csv(t2, file = paste0("Data/Results/", date, "_t2.csv"), row.names = F)
+# write.csv(t2, file = paste0("Data/Results/", date, "_t2.csv"), row.names = F)
 
 # Table S3 - not calculable in R (primers)
 
@@ -82,7 +83,7 @@ t4 <- r0.results.sensitivity %>% bind_rows(.id = "Virus") %>%
             ) %>%
   pivot_wider(names_from = c(Sociality, Virus), values_from = R0)
 
-write.csv(t4, file = paste0("Data/Results/", date, "_t4.csv"), row.names = F)
+# write.csv(t4, file = paste0("Data/Results/", date, "_t4.csv"), row.names = F)
 
 # Table S5
 
@@ -95,7 +96,7 @@ t5 <- bind_rows(true.prev.2021 %>% mutate(Year = 2021), true.prev.2022 %>% mutat
   left_join(t2 %>% select(Species = species, dwvb.p, bqcv.p, abpv.p), by = "Species") %>%
   select(Species, n, starts_with("dwvb"), starts_with("bqcv"), starts_with("abpv"))
 
-write.csv(t5, file = paste0("Data/Results/", date, "_t4.csv"), row.names = F)
+# write.csv(t5, file = paste0("Data/Results/", date, "_t4.csv"), row.names = F)
 
 # Table S6
 
@@ -108,13 +109,13 @@ t6 <- r0.comb %>%
   # only one number of networks because it's the same across viruses
   select(Species, n_networks = n_networks.dwvb, starts_with("r0"))
 
-write.csv(t6, file = paste0('Data/Results/', date, '_t6.csv'))
+# write.csv(t6, file = paste0('Data/Results/', date, '_t6.csv'))
 
 # Table S7
 
 t7 <- r0.comb %>% select(-starts_with("n_n"), -starts_with("r0"))
 
-write.csv(t7, file = paste0('Data/Results/', date, '_t7.csv'))
+# write.csv(t7, file = paste0('Data/Results/', date, '_t7.csv'))
 
 # Table S8
 
@@ -126,13 +127,13 @@ t8 <- bf.list %>%
          virus = sub("...$","",sub("...","",name))) %>%
   select(virus, model1, model2, `BF in support of Model 1` = value)
 
-write.csv(t8, file = paste0('Data/Results/', date, '_t8.csv'))
+# write.csv(t8, file = paste0('Data/Results/', date, '_t8.csv'))
 
 
 # Table S9
 t9 <- lapply(WB_models_combined_raw, custom_summary) %>% bind_rows(.id = 'id') 
 
-aa = t9 %>% filter(pd > 0.94) %>% 
+preview = t9 %>% filter(pd > 0.94) %>% 
   filter(Predictor != 'Intercept' & Predictor != 'hu_Intercept'& Predictor != 'SpeciesBombuspascuorum' & 
            Predictor != 'hu_SpeciesBombuspascuorum' & Predictor != 'SpeciesBombusterrestris' & Predictor != 'hu_SpeciesBombusterrestris') %>% 
   arrange(Response, Predictor) %>% rownames_to_column() %>% select(-rowname) %>% filter(Predictor != 'Year2022' & Predictor != 'hu_Year2022')
@@ -151,7 +152,7 @@ t9 <- t9 %>% mutate(term = ifelse(grepl('hu_', Predictor), 'Probability of prese
   relocate(Virus, Bee_group, term, Predictor) %>% arrange(Virus, Bee_group, term, Predictor)
 
 
-write.csv(t9, file = paste0('Data/Results/', date, '_t9.csv'), row.names = F)
+# write.csv(t9, file = paste0('Data/Results/', date, '_t9.csv'), row.names = F)
 
 # Table S10
 t10 <- lapply(WB_models_combined_raw_size, custom_summary) %>% bind_rows(.id = 'id') 
@@ -170,7 +171,7 @@ t10 <- t10 %>% mutate(term = ifelse(grepl('hu_', Predictor), 'Probability of pre
   relocate(Virus, Bee_group, term, Predictor) %>% arrange(Virus, Bee_group, term, Predictor)
 
 
-write.csv(t10, file = paste0('Data/Results/', date, '_t10.csv'), row.names = F)
+# write.csv(t10, file = paste0('Data/Results/', date, '_t10.csv'), row.names = F)
 
 # Table S11
 
@@ -181,15 +182,15 @@ t11 <- lapply(site_models_500, custom_summary) %>% bind_rows(.id = 'mod') %>%
          Response = recode_factor(as.factor(Response), 'logsumab' = 'Bee density', 'Morisitahbns' = 'HB niche overlap',
                                   'Morisitablns' = 'BL niche overlap', 'Beerich' = 'Bee richness')) %>% select(-mod)
 
-write.csv(t11, file = paste0('Data/Results/', date, '_t11.csv'), row.names = F)
+# write.csv(t11, file = paste0('Data/Results/', date, '_t11.csv'), row.names = F)
 
 # combining tables
 
 tables_list <- list(
-  "Content" = data.frame(),
+  "Content" = data.frame(), # list of content added manually
   "1. Location" = t1,
   "2. No. of ind. viral screen" = t2,
-  "3. Primer info" = data.frame(),
+  "3. Primer info" = data.frame(), # molecular primers
   "4. Sensitivity R0" = t4,
   "5. Adjusted prevalence" = t5,
   "6. R0 results" = t6,
@@ -208,6 +209,8 @@ write_xlsx(tables_list, file = paste0("Data/Results/", date, "_supplementary_tab
 ####### FIGURES #######
 #######################
 
+## first create individual plots, and then arrange them in the figures like in the ms
+
 ## PREVALENCE AND LOAD
 
 p = data.pathogen.both  %>% 
@@ -219,7 +222,7 @@ p = data.pathogen.both  %>%
   mutate(virus = factor(virus, levels = c('DWV-B', 'BQCV', 'ABPV'))) %>% 
   ggplot(aes(virus, prevalence, fill = Group)) +
   geom_bar(stat = 'identity', col = 'black', position = position_dodge())+
-  scale_fill_manual(values = c('#6a7f54', '#d55e00', '#f0e442'), labels = c('Honey bee', 'Bumble bee', 'Other wild bee'))+
+  scale_fill_manual(values = c('#6a7f54', '#d55e00', '#f0e442'), labels = c('Honeybee', 'Bumblebee', 'Other wild bee'))+
   facet_wrap(~Year, nrow = 1)+
   theme_classic(base_size = 18)+
   theme(axis.text = element_text(color = 'black'), legend.position = 'bottom',
@@ -244,7 +247,7 @@ l = data.pathogen.both %>%
         plot.title.position = "plot", 
         plot.caption.position =  "plot")+
   labs(x = NULL, y = 'Viral laod per uL (ln)', fill = 'Bee group', title = expression(bold('b')))+
-  scale_fill_manual(values = c('#6a7f54', '#d55e00', '#f0e442'), labels = c('Honey bee', 'Bumble bee', 'Other wild bee'))+
+  scale_fill_manual(values = c('#6a7f54', '#d55e00', '#f0e442'), labels = c('Honeybee', 'Bumblebee', 'Other wild bee'))+
   scale_x_discrete(labels = c('DWV-B', 'BQCV', 'ABPV'))+
   facet_wrap(~Year)
 
@@ -310,7 +313,7 @@ prev.sep = plot_grid(dw + theme(legend.position = 'none'), bq, nrow = 1)
 
 ### plotting top 4 R0 species
 
-top4.dwvb = r0.tbl %>% 
+top4.dwvb = t6 %>% 
   arrange(desc(r0_mean.dwvb)) %>% slice_max(r0_mean.dwvb, n = 4) 
 
 dwvb.top.r0 <- r0.results.long$dwvb %>% 
@@ -346,7 +349,7 @@ dwvb.top.r0 <- r0.results.long$dwvb %>%
     title = expression(bold('a'))) +
   ylim(0, 5)
 
-top4.bqcv = r0.tbl %>% 
+top4.bqcv = t6 %>% 
   arrange(desc(r0_mean.bqcv)) %>% slice_max(r0_mean.bqcv, n = 4) 
 
 bqcv.top.r0 <- r0.results.long$bqcv %>% 
@@ -385,7 +388,7 @@ bqcv.top.r0 <- r0.results.long$bqcv %>%
   scale_y_continuous(labels = c(1,10,100,1000), breaks = c(0,1,2,3))
 
 
-top4.abpv = r0.tbl %>% 
+top4.abpv = t6 %>% 
   arrange(desc(r0_mean.abpv)) %>% slice_max(r0_mean.abpv, n = 4) 
 
 abpv.top.r0 <- r0.results.long$abpv %>% 
@@ -424,13 +427,13 @@ abpv.top.r0 <- r0.results.long$abpv %>%
 r0_plots = plot_grid(dwvb.top.r0, bqcv.top.r0, abpv.top.r0, align = 'hv', nrow = 3)
 
 
-## simulation plot
+## prevalence simulation plot (heatmap)
 
-obs = sim.prev.tbl %>% select(Species, contains("obs_prev_mean")) %>%
+obs = t7 %>% select(Species, contains("obs_prev_mean")) %>%
   pivot_longer(cols = -Species, names_to = "Virus", values_to = "obs_prev") %>%
   mutate(Virus = sub(".*\\.", "", Virus))
 
-sim = sim.prev.tbl %>% select(Species, contains(c("sim_prev"))) %>%
+sim = t7 %>% select(Species, contains(c("sim_prev"))) %>%
   select(Species, contains(c("mean"))) %>%
   pivot_longer(cols = -Species, names_to = "Type", values_to = "sim_prev") %>%
   mutate(Virus = sub(".*\\.", "", Type),
@@ -455,7 +458,7 @@ heat = ggplot(sim.logodds, aes(Species, Type, fill= fold_prev)) +
   scale_y_discrete(labels = c('A. minutula','B. lapidarius', 'A. mellifera','B. lapidarius', 'A. mellifera', 'L. pauxillum' ))+
   theme(axis.ticks = element_blank(), axis.text = element_text(color = 'black', face = 'italic'), axis.text.x = element_text(angle = 90, size = 12, hjust = 0.98))
   
-## r0 vs resource overlap with key host
+## r0 vs resource overlap with key host (for supplement)
 
 dwvb_r0_overlap <- r0.results.long$dwvb %>% 
   rename(Site_number = Site) %>%
@@ -562,17 +565,18 @@ r0_overlap_plot <- plot_grid(dwvb.r0.overlap.hb, dwvb.r0.overlap.lp, bqcv.r0.ove
 ########################
 ###### COMMUNITY #######
 ########################
+pd = p_direction(hb.dens.m) %>% filter(grepl("Density", Parameter))
 
 hb.dens.colony <- ggplot(data.site, aes(x = as.factor(Density), y = hb_dens, fill = as.factor(Density))) +
   geom_boxplot()+
   theme_bw()+
-  scale_fill_manual(values = c('#d0d316', '#d32116'))+
-  labs(x = '\nHoneybee colony density', y = expression(paste('Honeybee density ', 'per ', m^2 ,'of flowers')),
-       title = 'C')+
+  scale_fill_manual(values = c('#ddcd4b', '#4b5bdd'))+
+  labs(x = '\nHoneybee colony density', y = expression(paste('Honeybee density ', 'per ', m^2 ,'of flowers')))+
   theme(panel.grid = element_blank(), axis.text = element_text(color = 'black'), legend.position = 'none',
         axis.ticks.x = element_blank())+
-  scale_x_discrete(labels = c('Low', 'Increased'))
-
+  scale_x_discrete(labels = c('Low', 'Increased'))+
+  annotate("text", label = paste0("pd = ", round(pd$pd, 2)), x=1.5,  y=max(data.site$hb_dens), hjust=0.5)
+  
 #######################
 #### hurdle models ####
 #######################
@@ -592,21 +596,14 @@ new_dat = expand.grid(
   Site = "Goe1425",
   Species = 'Bombus lapidarius'
 )
-
-posterior_pred_unscaled <- function(mod, newdata, dpar, variable, bee_group) {
-  unscaled_var <- sub(".s", "",variable)
-  posterior_preds <- epred_draws(mod, newdata = newdata, dpar = dpar, re_formula = NA)
-  data.raw = data.both %>% filter(Group == bee_group) %>% ungroup()
-  m = mean(data.raw[[unscaled_var]])
-  sd = sd(data.raw[[unscaled_var]])
-  x = data.frame(z = new_dat[, variable], r = new_dat[, variable] * sd + m) %>% distinct(z,r)
-  
-  posterior_preds2 = left_join(posterior_preds, x, by = join_by(!!variable == 'z'))
-  return(posterior_preds2)
-}
-
  
-posterior_preds2 <- posterior_pred_unscaled(mod, new_dat, "hu", "dwvb.f.s", "bb")
+posterior_preds <- epred_draws(mod, newdata = new_dat, dpar = 'hu', re_formula = NA)
+data.bb.raw = data.both %>% filter(Group == 'bb') %>% ungroup() 
+m = mean(data.bb.raw$dwvb.f)
+sd = sd(data.bb.raw$dwvb.f)
+x = data.frame(z = new_dat$dwvb.f, r = new_dat$dwvb.f * sd + m) %>% distinct(z,r)
+
+posterior_preds2 = left_join(posterior_preds, x, by = join_by('dwvb.f.s' == 'z')) 
 
 exp_dwvb_b = ggplot(posterior_preds2, aes(x = r, y = 1-hu)) +
   stat_lineribbon(.width = c(0.95), fill = '#6a7f54') +
@@ -837,7 +834,6 @@ new_dat = expand.grid(
   Connectance.s = 0,
   total_bee_dens.s = 0,
   Year = 2022, 
-  sum_nodes = round(mean(mod$data$sum_nodes)),
   dwvb.f.s = 0,
   bqcv.f.s = 0,
   abpv.bl.f.s = 0,
@@ -923,12 +919,11 @@ new_dat = expand.grid(
   Connectance.s = 0,
   total_bee_dens.s = 0,
   Year = 2022, 
-  sum_nodes = round(mean(mod$data$sum_nodes)),
   dwvb.f.s = 0,
   bqcv.f.s = 0,
   abpv.bl.f.s = 0,
   Site = 'Goe1425',
-  Species = 'Andrena florea'
+  Species = 'Andrena flavipes'
 )
 
 posterior_preds <- epred_draws(mod, newdata = new_dat, dpar = 'mu', re_formula = NA)
@@ -970,7 +965,6 @@ new_dat = expand.grid(
   Morisita.hb.s = 0,
   total_bee_dens.s = 0,
   Year = 2022, 
-  sum_nodes = round(mean(mod$data$sum_nodes)),
   dwvb.f.s = 0,
   bqcv.f.s = 0,
   abpv.bl.f.s = 0,
@@ -1009,11 +1003,10 @@ new_dat = expand.grid(
   Morisita.hb.s = 0,
   total_bee_dens.s = 0,
   Year = 2022,
-  sum_nodes = round(mean(mod$data$sum_nodes)),
   dwvb.f.s = 0,
   bqcv.f.s = 0,
   abpv.bl.f.s = 0,
-  Species = 'Andrena florea'
+  Species = 'Andrena flavipes'
 )
 
 posterior_preds <- epred_draws(mod, newdata = new_dat, dpar = 'hu', re_formula = NA)
@@ -1048,7 +1041,6 @@ new_dat = expand.grid(
   Morisita.hb.s = 0,
   total_bee_dens.s = 0,
   Year = 2022, 
-  sum_nodes = round(mean(mod$data$sum_nodes)),
   dwvb.f.s = 0,
   bqcv.f.s = 0,
   abpv.bl.f.s = 0,
@@ -1088,11 +1080,10 @@ new_dat = expand.grid(
   Morisita.hb.s = 0,
   total_bee_dens.s = 0,
   Year = 2022, 
-  sum_nodes = round(mean(mod$data$sum_nodes)),
   dwvb.f.s = 0,
   bqcv.f.s = 0,
   abpv.bl.f.s = 0,
-  Species = 'Andrena florea'
+  Species = 'Andrena flavipes'
 )
 
 posterior_preds <- epred_draws(mod, newdata = new_dat, dpar = 'mu', re_formula = NA)
@@ -1127,7 +1118,6 @@ new_dat = expand.grid(
   Morisita.hb.s = 0,
   total_bee_dens.s = 0,
   Year = 2022, 
-  sum_nodes = round(mean(mod$data$sum_nodes)),
   dwvb.f.s = 0,
   bqcv.f.s = 0,
   abpv.bl.f.s = 0,
@@ -1162,7 +1152,8 @@ con.grid = plot_grid(con.a, con.b, con.c, ncol = 2, align = 'hv')
 ######### FIGURES MS ##########
 ###############################
 
-## FIGURE 1 - created outside of R
+## FIGURE 1 - made in powerpoint
+
 
 ## FIGURE 2
 plot_grid(r0_plots, exp_pred_6, rel_widths = c(1.3/3, 1.6/3), ncol = 2, align = 'hv', scale = 0.95)
@@ -1189,11 +1180,15 @@ plot_grid(con.a, con.b, con.c, prev.sep, nrow = 2,  align = 'hv')
 ggsave('Data/fig/f5.pdf', width = 8, height = 8)
 ggsave('Data/fig/f5.png', width = 8, height = 8)
 
-## FIGURE S1
-hb.dens.colony
+## FIGURE S1 
+# takes a long time to query osm
+source("09_study_map.R")
 
-ggsave(file = 'Data/fig/fs1.png', height = 3, width = 3)
-ggsave(file = 'Data/fig/fs1.pdf', height = 3, width = 3)
+plot_grid(map, empty, empty, hb.dens.colony,  ncol = 2, nrow = 2, rel_widths = c(2/3, 1/3), rel_heights = c(3/4, 1/4))
+
+# Germany's outline added manually - osm query too big
+ggsave(file = 'Data/fig/fs1.png', height = 8, width = 8)
+ggsave(file = 'Data/fig/fs1.pdf', height = 8, width = 8)
 
 ## FIGURE S2
 prevload.raw

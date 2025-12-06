@@ -30,20 +30,6 @@ wind.2022.2 = wind.2022 %>% filter(!is.na(X28S) & !is.na(Species) & Analysis_don
 
 ## cleaning up the molecular analysis
 
-remove_low_quality <- function(data, bee_group, gene) {
-  data %>% 
-    rename(qual = gene) %>%
-    filter(qual < mean(qual, na.rm = T) + 2*sd(qual, na.rm = T)) %>% #removing samples that are above 2x SD Ct
-    mutate(dwvb = ifelse(!is.na(DWVB) & !is.na(DWVB.SD ), 1, 0), # changing undetected Ct to 0
-           bqcv = ifelse(!is.na(BQCV) & !is.na(BQCV.SD ), 1, 0),
-           abpv = ifelse(!is.na(ABPV) & !is.na(ABPV.SD ), 1, 0)) %>% 
-    mutate(DWVB.abs = ifelse(dwvb == 0 , 0, DWVB.abs), # removing load of samples that did not meet the postive criteria
-           BQCV.abs = ifelse(bqcv == 0, 0, BQCV.abs),
-           ABPV.abs = ifelse(abpv == 0, 0, ABPV.abs)) %>% 
-    dplyr::select(-c(qual:ABPV.SD)) %>%
-    mutate(Group = bee_group)
-}
-
 hind.2021.3 <- remove_low_quality(hind.2021.2, "hb", "ACTIN")
 hind.2022.3 <- remove_low_quality(hind.2022.2, "hb", "ACTIN")
 

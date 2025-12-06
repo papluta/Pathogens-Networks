@@ -1,20 +1,25 @@
 ### CALCULATING SPECIES R0 BASED ON FENTON ET AL. 2015###
-
+library(glue)
+library(brms)
+library(tidybayes)
+library(rstan)
+library(bridgesampling)
+set.seed(99)
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
 
 source('05_main_data_file.R') # reruns also previous scripts (01 - 05)
 
 # re-load data if available
-load('Data/251126_true_prev_R0.RData')
-#load('Data/morisita_all.RData')
+#load('Data/251126_true_prev_R0.RData')
 
-library(dplyr)
-library(tidyr)
-library(tidyverse)
-library(glue)
+
+subset <- c('Goe1392', 'Goe1425', 'Goe235', 'Goe288', 'Goe47', 'Goe595',
+            'Gos1', 'Gos2', 'Nor1', 'Nor1070', 'Nor1145', 'Nor264', 'Nor508', 'Nor918', 'WM1249', 'WM630')
 
 
 data.both2 = data.both %>% 
-  mutate(across(DWVB.abs:ABPV.abs, function(x) x * BUFFER))
+  mutate(across(DWVB.abs:ABPV.abs, function(x) x * BUFFER)) # restore the viral load per bee, not per uL of buffer
 
 data2021 <- data.both2 %>% filter(Year == 2021)
 data2022 <- data.both2 %>% filter(Year == 2022)
@@ -24,18 +29,6 @@ abundance.2022 <- abundance.both %>% filter(Year == 2022) %>% select(-Year)
 
 
 ###### ESTIMATING ADJUSTED PREVALENCE
-library(brms)
-library(tidyverse)
-library(tidybayes)
-library(tidyr)
-library(ggplot2)
-library(rstan)
-library(bridgesampling)
-set.seed(99)
-
-options(mc.cores = parallel::detectCores())
-rstan_options(auto_write = TRUE)
-
 
 ### 2021
 
@@ -51,7 +44,7 @@ obs.prev.2021 = data2021 %>% select(Sample, Site, Year, Species, dwvb, bqcv, abp
   summarise(prev = mean(Presence), prev.sd = sd(Presence)) %>% 
   mutate(prev.inv = logit_scaled(prev)) %>% 
   # assingning a value to 1
-  mutate(prev.inv = ifelse(prev.inv == Inf, 3.5, prev.inv)) %>% 
+  mutate(prev.inv = ifelse(prev.inv == Inf, 3.5, prev.inv)) %>% # adding a 0.99 prevalence approximation to swap the Inf
   mutate(prev.inv = round(prev.inv, 2)) %>% 
   mutate(Group = factor(Group, levels = c('hb', 'bl', 'bp', 'bt', 'wb'))) %>%
   arrange(Group)
@@ -60,7 +53,9 @@ op1 = as.data.frame(obs.prev.2021)
 
 op1[op1$Virus == 'dwvb',]
 
-# cannot assign prior values dynamicaly, adding them manually
+# cannot assign prior values dynamically because prior function evaluates them as a character, 
+# adding them manually from the tibble above
+
 prior.dwvb <- c(prior(normal(-0.47,3), class = 'b', coef = 'SpeciesApismellifera'),
                 prior(normal(-1.22,3), class = 'b', coef = 'SpeciesBombuslapidarius'),
                 prior(normal(-3.31,3), class = 'b', coef = 'SpeciesBombuspascuorum'),
@@ -77,7 +72,7 @@ prior.bqcv <- c(prior(normal(3.50,3), class = 'b', coef = 'SpeciesApismellifera'
 
 op1[op1$Virus == 'abpv',]
 
-prior.abpv <- c(prior(normal(-2.45,3), class = 'b', coef = 'SpeciesApismellifera'),
+prior.abpv <- c(prior(normal(-2.48,3), class = 'b', coef = 'SpeciesApismellifera'),
                 prior(normal(-0.39,3), class = 'b', coef = 'SpeciesBombuslapidarius'),
                 prior(normal(-1.97,3), class = 'b', coef = 'SpeciesBombuspascuorum'),
                 prior(normal(-1.35,3), class = 'b', coef = 'SpeciesBombusterrestris'),
@@ -109,7 +104,7 @@ obs.prev.2022 = data2022 %>%
   group_by(Group, Virus) %>%
   summarise(prev = mean(Presence), prev.sd = sd(Presence)) %>% 
   mutate(prev.inv = logit_scaled(prev)) %>% 
-  mutate(prev.inv = ifelse(prev.inv == Inf, 3.5, prev.inv)) %>% 
+  mutate(prev.inv = ifelse(prev.inv == Inf, 3.5, prev.inv)) %>% # adding a 0.99 prevalence approximation to swap the Inf
   mutate(prev.inv = round(prev.inv, 2)) %>% 
   mutate(Group = factor(Group, levels = c('hb', 'bl', 'bp', 'bt', 'wb'))) %>%
   arrange(Group)
@@ -151,155 +146,12 @@ true.prev.2022 <- data.frame(Species = data2022$Species, Site = data2022$Site,
   group_by(Species, Site) %>% 
   mutate(n = n())
 
-save(true.prev.2021, true.prev.2022, file = 'Data/251126_true_prev_R0.RData')
+save(true.prev.2021, true.prev.2022, file = paste0('Data/', date, '_true_prev_R0.RData'))
 
-###################
-#### FUNCTIONS ####
-###################
-
-dat_into_matrix = function(abundance, true.prev, data, virus, sociality = 2) {
-  names(data) = tolower(names(data))
-  names(true.prev) = tolower(names(true.prev))
-  names(abundance) = tolower(names(abundance))
-  t.prev <- true.prev %>% 
-    group_by(site, species) %>% 
-    rename(vir = paste0(virus, '.true')) %>% 
-    summarise(prev = mean(vir), n = n()) %>% 
-    filter(n > 2) %>% 
-    select(-n)
-  load <- data %>% 
-    rename(vir = virus, vir.load = paste0(virus, '.abs')) %>% 
-    filter(vir > 0) %>% 
-    group_by(site, species) %>% 
-    summarise(load = mean(vir.load))
-  
-  mat.dat <- full_join(abundance %>% 
-                         select(site, species, bee_abundance), t.prev, by = c('site','species')) %>% 
-    full_join(load, by = c('site','species')) %>% 
-    group_by(species) %>%
-    mutate(prev = ifelse(is.na(prev), mean(prev, na.rm = T), prev),
-           load = ifelse(is.na(load), mean(load, na.rm = T), load)) %>%
-    ungroup() %>% 
-    filter(bee_abundance > 0) %>%
-    mutate(load = ifelse(is.na(load), 100, load)) %>% 
-    drop_na(prev) %>% 
-    left_join(data %>% distinct(species, social), by = 'species') %>%
-    mutate(social = as.numeric(ifelse(social == 0, 1, sociality)))
-  return(mat.dat)
-}
-
-niche_fun = function(mat.dat.list, morisita) {
-  inter.niche <- list()
-  inter.niche2 <- list()
-  for (i in 1:length(mat.dat.list)) {
-    inter.niche[[i]] <- as.data.frame(morisita[[i]]) %>% rownames_to_column() %>% mutate(rowname = sub(' agg.', '', rowname)) %>% 
-      column_to_rownames()
-    diag(inter.niche[[i]]) = 1
-    colnames(inter.niche[[i]]) <- rownames(inter.niche[[i]])
-    inter.niche2[[i]] <- inter.niche[[i]] %>% filter(row.names(inter.niche[[i]]) %in% mat.dat.list[[i]]$species) 
-    inter.niche2[[i]] <- inter.niche2[[i]] %>% select(rownames(inter.niche2[[i]]))
-    excluded_species <- setdiff(colnames(inter.niche[[i]]), colnames(inter.niche2[[i]])) 
-    message(glue("Species removed from site {i}: {paste0(excluded_species, collapse = ',')}"))
-  }
-  return(inter.niche2)
-}
-
-# niche_null_fun = function(mat.dat.list, morisita.zscore) {
-#   inter.niche.null <- list()
-#   for (i in 1:length(mat.dat.list)) {
-#     inter.niche.null[[i]] <- as.data.frame(morisita.zscore[[i]]) %>% rownames_to_column() %>% mutate(rowname = sub(' agg.', '', rowname)) %>% 
-#       column_to_rownames() %>% mutate(across(everything(), function(x) abs(x)))
-#     inter.niche.null[[i]][is.na(inter.niche.null[[i]])] <- 1
-#     colnames(inter.niche.null[[i]]) <- rownames(inter.niche.null[[i]])
-#     inter.niche.null[[i]] <- inter.niche.null[[i]] %>% filter(row.names(inter.niche.null[[i]]) %in% mat.dat.list[[i]]$species) 
-#     inter.niche.null[[i]] <- inter.niche.null[[i]] %>% select(rownames(inter.niche.null[[i]]))
-#   }
-#   return(inter.niche.null)
-# }
-
-
-r0_func_fac <- function(data.matrix.raw, inter.niche.ex, species_out = 'Apis mellifera') {
-  result <- matrix(NA, nrow = nrow(data.matrix.raw), ncol = 1)
-  r0 <- matrix(NA, nrow = nrow(data.matrix.raw), ncol = nrow(data.matrix.raw))
-  transmission <- matrix(NA, nrow = nrow(data.matrix.raw), ncol = nrow(data.matrix.raw))
-  data.matrix <- as.matrix(data.matrix.raw[,3:6])
-  
-  # Calculate niche overlap for each pair of species
-  for (j in seq_len(nrow(r0))) {
-    for (i in seq_len(nrow(r0))) {
-      transmission[j,i] <- inter.niche.ex[j,i]
-      transmission[j,j] <- data.matrix[j, 4]
-      colnames(transmission) = colnames(inter.niche.ex)
-      rownames(transmission) = rownames(inter.niche.ex)
-      r0[j,i] <- log10(data.matrix[i, 3])/log10(data.matrix[j, 3]) * data.matrix[i, 1]/data.matrix[j, 1] * data.matrix[i, 2] * 
-        (transmission[j,i]/data.matrix[j, 4])
-      #r0[j,j] <- 1
-    }
-    result[j,1] <- 1 / (((1 - data.matrix[j, 2])/data.matrix[j, 2]) * sum(r0[j,], na.rm = T))
-    rownames(result) <- rownames(inter.niche.ex)
-    colnames(result) <- 'r0'
-    #result_com = list(r0 = result, transmission = transmission)
-  }
-  # remove main host
-  data.matrix2 = data.matrix.raw %>% filter(!species %in% species_out)
-  transmission2 = as.data.frame(transmission) %>% filter(row.names(transmission) %in% data.matrix2$species)
-  transmission2 = as.data.frame(transmission2) %>% select(rownames(transmission2))
-  r02 = as.data.frame(result)  %>% filter(row.names(result) %in% data.matrix2$species)
-  pred.prev <- matrix(NA, nrow = nrow(data.matrix2), ncol = 1)
-  mat <- matrix(NA, nrow = nrow(data.matrix2), ncol = nrow(data.matrix2))
-  data.matrix2 <- as.matrix(data.matrix2[,3:6])
-  ## run the code solving for prevalence
-  for (o in seq_len(nrow(mat))) {
-    for (p in seq_len(nrow(mat))) {
-      mat[o,p] <- log10(data.matrix2[p, 3])/log10(data.matrix2[o, 3]) * data.matrix2[p, 1]/data.matrix2[o, 1] * data.matrix2[p, 2] * 
-        (transmission2[o,p]/data.matrix2[o, 4])
-    }
-    pred.prev[o,1] <- r02[o,1] * sum(mat[o,], na.rm = T) / (1 + r02[o,1] * sum(mat[o,], na.rm = T))
-    rownames(pred.prev) <- rownames(transmission2)
-    #colnames(pred.prev) <- 'prev_no_hb'
-  }
-  result_com = as.data.frame(result) %>% rownames_to_column() %>% left_join(as.data.frame(pred.prev) %>% rownames_to_column(), by = 'rowname') %>% rename(Prev.no.mh = V1) %>%
-    left_join(data.matrix.raw %>% select(species, prev), by = join_by('rowname' == 'species'))
-  return(result_com)
-}
-
-
-subset <- c('Goe1392', 'Goe1425', 'Goe235', 'Goe288', 'Goe47', 'Goe595',
-           'Gos1', 'Gos2', 'Nor1', 'Nor1070', 'Nor1145', 'Nor264', 'Nor508', 'Nor918', 'WM1249', 'WM630')
 
 ### DWV-B
 
 ### 2021 (subset)
-
-r0_wrapper <- function(abundance, true.prev, data, virus, is_subset, morisita, species_out, sociality = 2) {
-  
-  mat.dat = dat_into_matrix(abundance, true.prev, data, virus, sociality)
-  
-  if (is_subset) {
-    
-    mat.dat = mat.dat %>% filter(site %in% subset)
-    
-  }
-  
-  mat.dat.list <- split(mat.dat, mat.dat$site)
-  
-  inter.niche = niche_fun(mat.dat.list, morisita)
-  
-  for (i in 1:length(mat.dat.list)) {
-    mat.dat.list[[i]] <- mat.dat.list[[i]] %>% filter(species %in% rownames(inter.niche[[i]]))
-  }
-  
-  r0 <- list()
-  for (s in 1:length(mat.dat.list)){
-    r0[[s]]  <- r0_func_fac(mat.dat.list[[s]], inter.niche[[s]], species_out = species_out)
-  }
-  
-  return(r0)
-}
-
-### DWVB
-
-## 2021
   
 R0.dwvb.noAM.2021 <- r0_wrapper(abundance = abundance.2021,
                                 true.prev = true.prev.2021,
@@ -443,7 +295,9 @@ r0.results.long <- list(dwvb = bind_rows(R0.dwvb.noAM.2021, R0.dwvb.noAM.2022, R
                      abpv = bind_rows(R0.abpv.noAM.2021, R0.abpv.noAM.2022, R0.abpv.noBL.2021, R0.abpv.noBL.2022)
                      )
 
-r0.dwvb <- r0.results.long$dwvb %>% filter(main.host == "Apis mellifera") %>% #removing duplicated values for R0
+r0.dwvb <- r0.results.long$dwvb %>% 
+  #removing duplicated values for R0, filtering by either main host will bear the same result
+  filter(main.host == "Apis mellifera") %>% 
   group_by(Species) %>% 
   summarise(r0_mean = mean(r0), r0_sd = sd(r0), n_networks = n())
 
@@ -457,7 +311,9 @@ r0.sim.prev.dwvb <- r0.results.long$dwvb %>%
   left_join(r0.dwvb, by = "Species")
 
 
-r0.bqcv <- r0.results.long$bqcv %>% filter(main.host == "Apis mellifera") %>% group_by(Species) %>% 
+r0.bqcv <- r0.results.long$bqcv %>% 
+  #removing duplicated values for R0, filtering by either main host will bear the same result
+  filter(main.host == "Apis mellifera") %>% group_by(Species) %>% 
   summarise(r0_mean = mean(r0), r0_sd = sd(r0), n_networks = n())
 
 r0.sim.prev.bqcv <- r0.results.long$bqcv %>% 
@@ -470,7 +326,9 @@ r0.sim.prev.bqcv <- r0.results.long$bqcv %>%
   left_join(r0.bqcv, by = "Species")
 
 
-r0.abpv <- r0.results.long$abpv %>% filter(main.host == "Bombus lapidarius") %>% group_by(Species) %>% 
+r0.abpv <- r0.results.long$abpv %>% 
+  #removing duplicated values for R0, filtering by either main host will bear the same result
+  filter(main.host == "Bombus lapidarius") %>% group_by(Species) %>% 
   summarise(r0_mean = mean(r0), r0_sd = sd(r0), n_networks = n())
 
 r0.sim.prev.abpv <- r0.results.long$abpv %>% 
@@ -658,6 +516,8 @@ bf.list <- list(bf.dwvb.hb = bf.dwvb.hb, bf.dwvb.lp = bf.dwvb.lp,
                 bf.bqcv.hb = bf.bqcv.hb, bf.bqcv.bl = bf.bqcv.bl,
                 bf.abpv.bl = bf.abpv.bl, bf.abpv.am = bf.abpv.am) 
 
+save(bf.list, file = paste0("Data/Results/",date,"_bayes_factor.RData"))
+
 #########################################
 ####  SENSITIVITY ANALYSIS SOCIALITY ####
 #########################################
@@ -764,3 +624,4 @@ r0.results.sensitivity <- list(dwvb = bind_rows(sens.R0.dwvb.2021, sens.R0.dwvb.
                                bqcv = bind_rows(sens.R0.bqcv.2021, sens.R0.bqcv.2022), 
                                abpv = bind_rows(sens.R0.abpv.2021, sens.R0.abpv.2022))
 
+save(r0.results.sensitivity, file = paste0("Data/Results/", date, "_r0_sensitivity.RData"))

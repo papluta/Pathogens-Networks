@@ -1,8 +1,6 @@
 library(readr)
-library(dplyr)
-library(ggplot2)
 library(tidyverse)
-
+source('01_custom_functions.R')
 
 dens <- read.csv('Data/density.csv')
 
@@ -24,14 +22,6 @@ fl.cv.2022 <- read_csv('Data/Flowercover2022.csv')
 
 distinct(fl.cv.2021, Transect_type) # the different habitat types
 distinct(fl.cv.2022, Transect_type) # the different habitat types
-
-# harmonizing the habitat types and AES labels
-# AES.2021 <- data.frame(Transect_type = distinct(fl.cv.2021, Transect_type),
-#                        Transect_type2 = c('Grassy_str', 'Fallow', 'Flower_fieBS12', 'Flower_fieBS11', 'CropBV1', 'Flower_fieBS2','semi_natur', 'Other_AUM'))
-# 
-# AES.2022 <- data.frame(Transect_type = distinct(fl.cv.2022, Transect_type),
-#                  Transect_type2 = c('Other_AUM', 'Flower_fieBS11', 'Flower_fieBS12', 'Flower_fieBS2', 'Grassy_str', 'CropBV1', 'Fallow', 'semi_natur'))
-# 
 
 ## Calculating flower cover
 
@@ -73,32 +63,6 @@ fl.cv2.both <- rbind(fl.cv2.2021, fl.cv2.2022)
 
 
 ## EXTRAPOLATION
-
-
-extrapolation_function <- function(relative.data, landuse, normalization) {
-  extrapolated <- relative.data %>% ungroup() %>%
-    # taking mean across all sites in case of NAs (here even if the habitat was absent from a landscape, the mean will be calculated, but then it will be multiplied by zero anyway)
-    mutate(across(any_of(c("Flower_fieBS2", "Flower_fieBS12", 
-                         "Flower_fieBS11", "Other_AUM", 
-                         "Fallow", "CropBV1", 
-                         "semi_natur", "Grassy_str")), ~ ifelse(is.na(.x), mean(.x, na.rm = T), .x))) %>%
-    left_join(landuse, by = 'Site') %>% 
-    # extrapolating (.x are the flower estimates, .y is the area in hectares)
-    mutate(Org.ex = CropBV1.x * CropBV1.y/normalization,
-           Fl_BS11_ex = Flower_fieBS11.x * Flower_fieBS11.y/normalization,
-           Fl_BS12_ex = Flower_fieBS12.x * Flower_fieBS12.y/normalization,
-           Fl_BS2_ex = Flower_fieBS2.x * Flower_fieBS2.y/normalization,
-           Fallow_ex = Fallow.x * Fallow.y/normalization,
-           Other_AUM_ex = Other_AUM.x * Other_AUM.y/normalization,
-           Grassy_str_ex = Grassy_str.x * Grassy_str.y/normalization,
-           semi_natur_ex = semi_natur.x * semi_natur.y/normalization) %>%
-    # summing areas
-    mutate(sum = Org.ex + Fl_BS11_ex + Fl_BS12_ex + Fl_BS2_ex + Fallow_ex + Other_AUM_ex + semi_natur_ex + Grassy_str_ex) %>%
-    # mutate(EX_per_agr = sum/(Crop + CropBV1.y + Flower_fieBS2.y + Flower_fieBS12.y + Flower_fieBS11.y + Fallow.y +
-    #                                 Other_AUM.y + semi_natur.y + Grassy_str.y)) %>%
-    select(Site, sum)
-  return(extrapolated)
-}
 
 # normalisation 100 beacause flower cover is a proportion
 flower_cover2021 <- extrapolation_function(fl.cv2.2021, land500.2021, normalization = 100)
@@ -146,8 +110,6 @@ for (i in 1:length(ab.2021.list)) {
       Transect_type == "grassland" ~ "semi_natur",
       Transect_type == "aum" ~ "Other_AUM",
       TRUE ~ NA)) %>% 
-    #left_join(AES.2021, by = 'Transect_type') %>% 
-    #mutate(Transect_type2 = ifelse(Transect_type == 'grassland', 'semi_natur', Transect_type2)) %>%
     select(-Transect_type) %>% 
     group_by(Site, Transect_type2) %>% 
     summarise(ab_mean = mean(Ab.m)) %>%
@@ -194,7 +156,6 @@ for (i in 1:length(ab.2022.list)) {
       Transect_type == "grassland" ~ "semi_natur",
       Transect_type == "aum" ~ "Other_AUM",
       TRUE ~ NA)) %>%     
-    #mutate(Transect_type2 = ifelse(Transect_type == 'grassland', 'semi_natur', Transect_type2)) %>%
     select(-Transect_type) %>% 
     group_by(Site, Transect_type2) %>% 
     summarise(ab_mean = mean(Ab.m)) %>%
@@ -215,4 +176,3 @@ honeybees.both <- rbind(honeybees.2021, honeybees.2022)
 lapidarius.both <- rbind(lapidarius.2021, lapidarius.2022)
 abundance.both <- rbind(abundance.2021, abundance.2022)
 
-#save(honeybees.both, lapidarius.both, abundance.both, flower.both, file = 'Data/land_extrapolated.RData')

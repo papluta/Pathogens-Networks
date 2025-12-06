@@ -1,6 +1,6 @@
 The repository of "Multiple key hosts and network structure shape viral prevalence across multispecies communities of bees" manuscript.
 
-To recreate the analysis, install `renv` package (`install.packages("renv"))` and run `renv::restore()`. This function will install all required packages and their appropriate versions.
+To recreate the analysis, install `renv` package (`install.packages("renv")`) and run `renv::restore()`. This function will install all required packages and their appropriate versions.
 
 The data required for this analysis is available at figshare: (link coming soon).
 

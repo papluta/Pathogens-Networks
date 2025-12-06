@@ -1,13 +1,8 @@
-library(dplyr)
-library(readr)
-library(tidyverse)
-library(ggplot2)
 library(sf)
-
 
 load('Data/traits.RData')
 
-source("03_networks.R")
+source("03_networks.R") # reruns scripts 01-03
 source("04_pathogen_data_processing.R")
 
 dens <- read.csv('Data/density.csv')
@@ -21,8 +16,8 @@ coord_sf_utm <- st_transform(coord_sf, crs = 32632)
 dist_km <- st_coordinates(coord_sf_utm)  / 1000
 coord2 <- data.frame(Site = coord_sf_utm$Site, x_km = dist_km[,1], y_km = dist_km[,2])
 
-morisita.raw.clean <- morisita.raw %>% mutate(Species = sub(" agg.", "", Species)) %>%
-  select(-c("Lasioglossum pauxillum", "Andrena minutula"))
+morisita.raw.clean <- morisita.raw %>% mutate(Species = sub(" agg.", "", Species)) %>% #harmonizing names
+  select(-c("Lasioglossum pauxillum", "Andrena minutula")) # not needed for the stat models
 
 ## calculating species mean for resource overlap
 morisita.raw.mean <- morisita.raw.clean %>% group_by(Species, Year) %>% summarise(Morisita.mean.hb = mean(`Apis mellifera`, na.rm = T),
@@ -41,7 +36,7 @@ hb.exposure <- data.pathogen.both %>% filter(Species == 'Apis mellifera') %>%
   left_join(abundance.both %>% filter(Species == 'Apis mellifera'), by = c('Year','Site')) %>% 
   rowwise() %>%
   left_join(flower.both %>% select(Site, Year, flower_dens), by = c('Site', 'Year')) %>% 
-  mutate(dwvb.f = log(dwvb.p * dwvb.q.p * (bee_abundance/flower_dens/10000 +1) + 1),
+  mutate(dwvb.f = log(dwvb.p * dwvb.q.p * (bee_abundance/flower_dens/10000 +1) + 1), # from m2 to km2
          bqcv.f = log(bqcv.p * bqcv.q.p *  (bee_abundance/flower_dens/10000 +1) + 1),
          abpv.f = log(abpv.p * abpv.q.p *  (bee_abundance/flower_dens/10000 +1) + 1),
          hb_dens = bee_abundance/flower_dens/10000 +1) %>% 

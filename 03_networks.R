@@ -27,19 +27,9 @@ net.met2021 <- adj.matrix.2021 %>% lapply(networklevel, index=c("connectance", "
 net.met2022 <- adj.matrix.2022 %>% lapply(networklevel, index=c("connectance", "NODF"), level = 'higher', 
                                           weighted = TRUE)
 
-
-# spec.met2021 <- adj.matrix.2021[names(adj.matrix.2021) %in% subset] %>% lapply(specieslevel, index=c("effective partners", "d"), level = 'higher') %>% lapply(rownames_to_column) %>% bind_rows(.id = "Site") %>% rownames_to_column(var = "Species")
-# spec.met2022 <- adj.matrix.2022 %>% lapply(specieslevel, index=c("effective partners", "d"), level = 'higher') %>% lapply(rownames_to_column) %>% bind_rows(.id = "Site") %>% rownames_to_column(var = "Species")
-# 
-# specialisation_grad <- rbind(spec.met2021, spec.met2022) %>% 
-#   mutate(Species = sub(" agg.","", rowname)) %>%
-#   group_by(Species) %>%
-#   summarise(eff.partner.m = mean(effective.partners), d.m = mean(d))
-
-
-connectance2021 <- net.met2021 %>% bind_rows(.id = 'Site') %>% mutate(Year = 2021)
-connectance2022 <- net.met2022 %>% bind_rows(.id = 'Site') %>% mutate(Year = 2022)
-conn <- rbind(connectance2021, connectance2022)
+net.met.long2021 <- net.met2021 %>% bind_rows(.id = 'Site') %>% mutate(Year = 2021)
+net.met.long2022 <- net.met2022 %>% bind_rows(.id = 'Site') %>% mutate(Year = 2022)
+net.met.long.both <- rbind(net.met.long2021, net.met.long2022)
 
 net.size2021 <- map(adj.matrix.2021, ~ data.frame(bee_rich = nrow(.x), plant_rich = ncol(.x))) %>% 
   bind_rows(.id = "Site") %>% mutate(Year = 2021)
@@ -50,9 +40,10 @@ net.size <- rbind(net.size2021, net.size2022) %>%
   rowwise() %>%
   mutate(sum_nodes = sum(bee_rich, plant_rich))
 
-network.metrics.both <- data.frame(Site = conn$Site, Connectance = conn$connectance,
-                                   NODF = conn$NODF,
-                                   Year = conn$Year) %>% 
+network.metrics.both <- data.frame(Site = net.met.long.both$Site, 
+                                   Connectance = net.met.long.both$connectance,
+                                   NODF = net.met.long.both$NODF,
+                                   Year = net.met.long.both$Year) %>% 
   left_join(net.size, by = c("Site", "Year"))
 
 #### CALCULATING INDIVIDUAL NICHE OVERLAP
