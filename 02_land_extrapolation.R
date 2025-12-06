@@ -25,7 +25,8 @@ distinct(fl.cv.2022, Transect_type) # the different habitat types
 
 ## Calculating flower cover
 
-fl.cv2.2021 <- fl.cv.2021 %>% group_by(Run, Site, Transect_type) %>% summarise(flcv.m = mean(cover_perc)) %>% 
+fl.cv2.2021 <- fl.cv.2021 %>% group_by(Run, Site, Transect_type) %>% 
+  summarise(flcv.m = mean(cover_perc)) %>% 
   mutate(Transect_type2 = case_when(
     Transect_type == "grassy_stripe" ~ "Grassy_str",
     Transect_type == "fallow" ~ "Fallow",
@@ -42,7 +43,7 @@ fl.cv2.2021 <- fl.cv.2021 %>% group_by(Run, Site, Transect_type) %>% summarise(f
 
 fl.cv2.2022 <- fl.cv.2022 %>% 
   group_by(Run, Site, Transect_type) %>% 
-  summarise(flcv.m = mean(Total_flower_cover_percentage)) %>% 
+  summarise(flcv.m = mean(cover_perc)) %>% 
   mutate(Transect_type2 = case_when(
     Transect_type == "gs" ~ "Grassy_str",
     Transect_type == "fallow" ~ "Fallow",
