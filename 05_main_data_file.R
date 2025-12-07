@@ -19,7 +19,7 @@ coord2 <- data.frame(Site = coord_sf_utm$Site, x_km = dist_km[,1], y_km = dist_k
 morisita.raw.clean <- morisita.raw %>% mutate(Species = sub(" agg.", "", Species)) %>% #harmonizing names
   select(-c("Lasioglossum pauxillum", "Andrena minutula")) # not needed for the stat models
 
-## calculating species mean for resource overlap
+## calculating species mean for resource overlap for where the main host is missing from transect walks
 morisita.raw.mean <- morisita.raw.clean %>% group_by(Species, Year) %>% summarise(Morisita.mean.hb = mean(`Apis mellifera`, na.rm = T),
                                                                             Morisita.mean.bl = mean(`Bombus lapidarius`, na.rm = T))
 morisita.raw.mean2 <- morisita.raw.clean %>% group_by(Species) %>% summarise(Morisita.mean.hb2 = mean(`Apis mellifera`, na.rm = T),
@@ -82,8 +82,8 @@ data.both <- data.pathogen.both %>%
   mutate(across(DWVB.abs:ABPV.abs, function(x) x/BUFFER)) %>%
   mutate(total_bee_dens = log(total_bee_abundance/flower_dens/10000 + 1)) %>%
   left_join(network.metrics.both, by = c('Site', 'Year')) %>%
-  left_join(morisita.raw %>% 
-              rename(Morisita.hb = `Apis mellifera`, 
+  left_join(morisita.raw %>%
+              rename(Morisita.hb = `Apis mellifera`,
                      Morisita.bl = `Bombus lapidarius`) %>%
               mutate(Species = sub(" agg.", "", Species)), by = join_by("Site", "Year", "Species")) %>%
   left_join(morisita.raw.mean, by = join_by( "Year", "Species")) %>%
@@ -93,7 +93,7 @@ data.both <- data.pathogen.both %>%
   select(-c(Morisita.mean.bl2, Morisita.mean.bl, Morisita.mean.hb, Morisita.mean.hb2)) %>%
   left_join(coord2, by = 'Site') %>%
   mutate(Year = as.factor(Year), Density = as.factor(Density)) %>%
-  #removing bees with no interaction recorded
+  #removing bees with no interaction recorded in transects
   filter(!(is.na(Morisita.hb) & is.na(Morisita.bl)))
   
 

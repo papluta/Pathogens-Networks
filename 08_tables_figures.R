@@ -63,8 +63,10 @@ t2 <- data.pathogen.both  %>%
             across(all_of(c('DWVB.abs', 'BQCV.abs', 'ABPV.abs')), ~ sd(.x, na.rm = T), .names = "{.col}.sd")
   ) %>%
   mutate(across(ends_with('.p'), ~ ifelse(is.na(.x), 0, .x))) %>%
+  left_join(data.pathogen.both  %>% distinct(Site, Species) %>% count(Species) %>%
+              rename(n_site = n), by = "Species") %>%
   rename_with(., tolower) %>%
-  select(species, n, starts_with("dwvb"), starts_with("bqcv"), starts_with("abpv"))
+  select(species, n, n_site, starts_with("dwvb"), starts_with("bqcv"), starts_with("abpv"))
 
 # write.csv(t2, file = paste0("Data/Results/", date, "_t2.csv"), row.names = F)
 

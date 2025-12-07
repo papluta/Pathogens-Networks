@@ -199,6 +199,8 @@ save(WB_models_combined_raw_size, file = paste0('Data/Results/',date,'_models_co
 #### SENSITIVITY ANALYSIS ####
 ### GP ####
 
+## per Reviewer 2 comment
+
 dwvb.b <- brm(bf(DWVB.abs ~ dwvb.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + Species,
                  hu ~ dwvb.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + Species), family = hurdle_lognormal(), data = data.bb, prior = 
                 c(prior(normal(0,2), class = 'b', dpar = 'hu'),
@@ -254,6 +256,115 @@ WB_models_combined_raw_gp <- list(dwvb.b = dwvb.b, dwvb.w = dwvb.w,
                            abpv.b = abpv.b, abpv.w = abpv.w, abpv.h = abpv.h)
 
 save(WB_models_combined_raw_gp, file = paste0('Data/Results/',date,'_models_combined_raw_gp.RData'))
+
+
+######################### Sensitivity ##########################
+## removing datapoints without recorded interaction at a site ##
+################################################################
+
+## per Reviewer 1 comment
+
+data.both <- data.pathogen.both %>% 
+  left_join(dens, by = 'Site') %>% 
+  mutate(Density = ifelse(Year == 2021, 0, Density),
+         Year = as.numeric(Year)) %>%
+  left_join(traits, by = "Species") %>%
+  left_join(flower.both %>% select(Site, Year, flower_dens), by = c('Year', 'Site')) %>%
+  left_join(hb.exposure, by = c('Site', 'Year')) %>%
+  left_join(bl.exposure, by = c('Site', 'Year')) %>%
+  left_join(abundance.site, by = c('Site', 'Year')) %>%
+  mutate(across(DWVB.abs:ABPV.abs, function(x) x/BUFFER)) %>%
+  mutate(total_bee_dens = log(total_bee_abundance/flower_dens/10000 + 1)) %>%
+  left_join(network.metrics.both, by = c('Site', 'Year')) %>%
+  left_join(morisita.raw %>%
+              rename(Morisita.hb = `Apis mellifera`,
+                     Morisita.bl = `Bombus lapidarius`) %>%
+              mutate(Species = sub(" agg.", "", Species)), by = join_by("Site", "Year", "Species")) %>%
+  left_join(coord2, by = 'Site') %>%
+  mutate(Year = as.factor(Year), Density = as.factor(Density)) %>%
+  #removing bees with no interaction recorded in transects
+  filter(!(is.na(Morisita.hb) & is.na(Morisita.bl)))
+
+
+
+####  SPLITTING DATA INTO BEE GROUPS, SCALE AND FILTER THE OUTLIER
+data.hb <- data.both %>% filter(Species == 'Apis mellifera') %>% 
+  ungroup() %>%
+  mutate(across(flower_dens:Morisita.bl, ~scale(.)[,1], .names = "{.col}.s"))
+
+data.bb <- data.both %>% filter(Group == 'bb') %>% 
+  ungroup() %>%
+  mutate(across(flower_dens:Morisita.bl, ~scale(.)[,1], .names = "{.col}.s"))
+
+data.bb.nolp <- data.both %>% filter(Group == 'bb') %>% filter(Species != 'Bombus lapidarius') %>% 
+  ungroup() %>%
+  mutate(across(flower_dens:Morisita.bl, ~scale(.)[,1], .names = "{.col}.s"))
+
+data.wb <- data.both %>% filter(Group == 'wb') %>% ungroup() %>%
+  mutate(across(flower_dens:Morisita.bl, ~scale(.)[,1], .names = "{.col}.s"))
+
+##
+
+dwvb.b <- brm(bf(DWVB.abs ~ dwvb.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + (1|Site) + Species,
+                 hu ~ dwvb.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + (1|Site) + Species), 
+              family = hurdle_lognormal(), 
+              data = data.bb, 
+              prior = model_priors, 
+              sample_prior = TRUE, 
+              iter = 5000, warmup = 2000)
+dwvb.w <- brm(bf(DWVB.abs ~ dwvb.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + (1|Site) + (1|Species),
+                 hu ~ dwvb.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + (1|Site) + (1|Species)), 
+              family = hurdle_lognormal(), 
+              data = data.wb, 
+              prior = model_priors, 
+              sample_prior = TRUE, 
+              iter = 5000, warmup = 2000, 
+              control = list(adapt_delta = 0.95))
+
+bqcv.b <- brm(bf(BQCV.abs ~ bqcv.f.s * Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + (1|Site) + Species,
+                 hu ~ bqcv.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + (1|Site) + Species), 
+              family = hurdle_lognormal(), 
+              data = data.bb, 
+              prior = model_priors, 
+              sample_prior = TRUE, 
+              iter = 5000, warmup = 2000)
+bqcv.w <- brm(bf(BQCV.abs ~ bqcv.f.s * Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + (1|Site) + (1|Species),
+                 hu ~ bqcv.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + (1|Site) + (1|Species)), 
+              family = hurdle_lognormal(), 
+              data = data.wb, 
+              prior = model_priors, 
+              sample_prior = TRUE, 
+              iter = 5000, warmup = 2000, 
+              control = list(adapt_delta = 0.95))
+
+abpv.b <- brm(bf(ABPV.abs ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + (1|Site) + Species,
+                 hu ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + (1|Site) + Species), 
+              family = hurdle_lognormal(), 
+              data = data.bb.nolp, 
+              prior = model_priors, 
+              sample_prior = TRUE, 
+              iter = 5000, warmup = 2000)
+abpv.w <- brm(bf(ABPV.abs ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + (1|Site) + (1|Species),
+                 hu ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + (1|Site) + (1|Species)), 
+              family = hurdle_lognormal(), 
+              data = data.wb, 
+              prior = model_priors, 
+              sample_prior = TRUE, 
+              iter = 5000, warmup = 2000, 
+              control = list(adapt_delta = 0.95))
+abpv.h <- brm(bf(ABPV.abs ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + (1|Site),
+                 hu ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + (1|Site)), 
+              family = hurdle_lognormal(), 
+              data = data.hb, 
+              prior = model_priors, 
+              sample_prior = TRUE, 
+              iter = 5000, warmup = 2000)
+
+WB_models_combined_raw_noimputedint <- list(dwvb.b = dwvb.b, dwvb.w = dwvb.w, 
+                               bqcv.b = bqcv.b, bqcv.w = bqcv.w, 
+                               abpv.b = abpv.b, abpv.w = abpv.w, abpv.h = abpv.h)
+
+save(WB_models_combined_raw_noimputedint, file = paste0('Data/Results/', date, '_models_combined_raw_no_imputed_interactions.RData'))
 
 ######################
 #### MODEL CHECKS ####
