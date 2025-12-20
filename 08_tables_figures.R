@@ -198,6 +198,9 @@ t12 <- t12 %>% mutate(term = ifelse(grepl('hu_', Predictor), 'Probability of pre
 
 # combining tables
 
+# results of brms models might differ slightly between runs
+
+
 tables_list <- list(
   "Content" = data.frame(), # list of content added manually
   "1. Location" = t1,
