@@ -196,73 +196,9 @@ WB_models_combined_raw_size <- list(dwvb.b = dwvb.b, dwvb.w = dwvb.w,
 
 save(WB_models_combined_raw_size, file = paste0('Data/Results/',date,'_models_combined_raw_size.RData'))
 
-#### SENSITIVITY ANALYSIS ####
-### GP ####
-
-## per Reviewer 2 comment
-
-dwvb.b <- brm(bf(DWVB.abs ~ dwvb.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + Species,
-                 hu ~ dwvb.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + Species), family = hurdle_lognormal(), data = data.bb, prior = 
-                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b'),
-                  prior(student_t(3, 2, 0.5), class = "lscale", coef = "gpx_kmy_km"), 
-                  prior(exponential(1), class = "sdgp", coef = "gpx_kmy_km")), sample_prior = TRUE)
-dwvb.w <- brm(bf(DWVB.abs ~ dwvb.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + (1|Species),
-                 hu ~ dwvb.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
-                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b'),
-                  prior(exponential(1), class = 'sd', dpar = 'hu'),
-                  prior(student_t(3, 2, 0.5), class = "lscale", coef = "gpx_kmy_km"), 
-                  prior(exponential(1), class = "sdgp", coef = "gpx_kmy_km")), sample_prior = TRUE, control = list(adapt_delta = 0.95))
-
-bqcv.b <- brm(bf(BQCV.abs ~ bqcv.f.s * Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + Species,
-                 hu ~ bqcv.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + Species), family = hurdle_lognormal(), data = data.bb, prior =
-                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b'),
-                  prior(student_t(3, 2, 0.5), class = "lscale", coef = "gpx_kmy_km"), 
-                  prior(exponential(1), class = "sdgp", coef = "gpx_kmy_km")), sample_prior = TRUE)
-bqcv.w <- brm(bf(BQCV.abs ~ bqcv.f.s * Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + (1|Species),
-                 hu ~ bqcv.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior =
-                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b'),
-                  prior(exponential(1), class = 'sd', dpar = 'hu'),
-                  prior(exponential(1), class = 'sd'),
-                  prior(student_t(3, 2, 0.5), class = "lscale", coef = "gpx_kmy_km"), 
-                  prior(exponential(1), class = "sdgp", coef = "gpx_kmy_km")), sample_prior = TRUE, control = list(adapt_delta = 0.95))
-
-abpv.b <- brm(bf(ABPV.abs ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + Species,
-                 hu ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + Species), family = hurdle_lognormal(), data = data.bb.nolp, prior = 
-                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b'),
-                  prior(student_t(3, 2, 0.5), class = "lscale", coef = "gpx_kmy_km"), 
-                  prior(exponential(1), class = "sdgp", coef = "gpx_kmy_km")), sample_prior = TRUE)
-abpv.w <- brm(bf(ABPV.abs ~ abpv.bl.f.s + Morisita.bl.s  + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + (1|Species),
-                 hu ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
-                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b'),
-                  prior(exponential(1), class = 'sd', dpar = 'hu'),
-                  prior(exponential(1), class = 'sd'),
-                  prior(student_t(3, 2, 0.5), class = "lscale", coef = "gpx_kmy_km"), 
-                  prior(exponential(1), class = "sdgp", coef = "gpx_kmy_km")), sample_prior = TRUE, control = list(adapt_delta = 0.95))
-abpv.h <- brm(bf(ABPV.abs ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F),
-                 hu ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F)), family = hurdle_lognormal(), data = data.hb, prior = 
-                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
-                  prior(normal(0,5), class = 'b'),
-                  prior(student_t(3, 2, 0.5), class = "lscale", coef = "gpx_kmy_km"), 
-                  prior(exponential(1), class = "sdgp", coef = "gpx_kmy_km")), sample_prior = TRUE)
-
-WB_models_combined_raw_gp <- list(dwvb.b = dwvb.b, dwvb.w = dwvb.w, 
-                           bqcv.b = bqcv.b, bqcv.w = bqcv.w, 
-                           abpv.b = abpv.b, abpv.w = abpv.w, abpv.h = abpv.h)
-
-save(WB_models_combined_raw_gp, file = paste0('Data/Results/',date,'_models_combined_raw_gp.RData'))
-
-
 ######################### Sensitivity ##########################
 ## removing datapoints without recorded interaction at a site ##
 ################################################################
-
-## per Reviewer 1 comment
 
 data.both <- data.pathogen.both %>% 
   left_join(dens, by = 'Site') %>% 
@@ -361,10 +297,74 @@ abpv.h <- brm(bf(ABPV.abs ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_
               iter = 5000, warmup = 2000)
 
 WB_models_combined_raw_noimputedint <- list(dwvb.b = dwvb.b, dwvb.w = dwvb.w, 
-                               bqcv.b = bqcv.b, bqcv.w = bqcv.w, 
-                               abpv.b = abpv.b, abpv.w = abpv.w, abpv.h = abpv.h)
+                                            bqcv.b = bqcv.b, bqcv.w = bqcv.w, 
+                                            abpv.b = abpv.b, abpv.w = abpv.w, abpv.h = abpv.h)
 
 save(WB_models_combined_raw_noimputedint, file = paste0('Data/Results/', date, '_models_combined_raw_no_imputed_interactions.RData'))
+
+
+#### REVIEWER's COMMENT ####
+### GP INSTEAD OF SITE AS RANDOM INTERCEPT ####
+
+## per Reviewer 2 comment
+
+dwvb.b <- brm(bf(DWVB.abs ~ dwvb.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + Species,
+                 hu ~ dwvb.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + Species), family = hurdle_lognormal(), data = data.bb, prior = 
+                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b'),
+                  prior(student_t(3, 2, 0.5), class = "lscale", coef = "gpx_kmy_km"), 
+                  prior(exponential(1), class = "sdgp", coef = "gpx_kmy_km")), sample_prior = TRUE)
+dwvb.w <- brm(bf(DWVB.abs ~ dwvb.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + (1|Species),
+                 hu ~ dwvb.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
+                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b'),
+                  prior(exponential(1), class = 'sd', dpar = 'hu'),
+                  prior(student_t(3, 2, 0.5), class = "lscale", coef = "gpx_kmy_km"), 
+                  prior(exponential(1), class = "sdgp", coef = "gpx_kmy_km")), sample_prior = TRUE, control = list(adapt_delta = 0.95))
+
+bqcv.b <- brm(bf(BQCV.abs ~ bqcv.f.s * Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + Species,
+                 hu ~ bqcv.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + Species), family = hurdle_lognormal(), data = data.bb, prior =
+                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b'),
+                  prior(student_t(3, 2, 0.5), class = "lscale", coef = "gpx_kmy_km"), 
+                  prior(exponential(1), class = "sdgp", coef = "gpx_kmy_km")), sample_prior = TRUE)
+bqcv.w <- brm(bf(BQCV.abs ~ bqcv.f.s * Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + (1|Species),
+                 hu ~ bqcv.f.s + Morisita.hb.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior =
+                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b'),
+                  prior(exponential(1), class = 'sd', dpar = 'hu'),
+                  prior(exponential(1), class = 'sd'),
+                  prior(student_t(3, 2, 0.5), class = "lscale", coef = "gpx_kmy_km"), 
+                  prior(exponential(1), class = "sdgp", coef = "gpx_kmy_km")), sample_prior = TRUE, control = list(adapt_delta = 0.95))
+
+abpv.b <- brm(bf(ABPV.abs ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + Species,
+                 hu ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + Species), family = hurdle_lognormal(), data = data.bb.nolp, prior = 
+                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b'),
+                  prior(student_t(3, 2, 0.5), class = "lscale", coef = "gpx_kmy_km"), 
+                  prior(exponential(1), class = "sdgp", coef = "gpx_kmy_km")), sample_prior = TRUE)
+abpv.w <- brm(bf(ABPV.abs ~ abpv.bl.f.s + Morisita.bl.s  + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + (1|Species),
+                 hu ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F) + (1|Species)), family = hurdle_lognormal(), data = data.wb, prior = 
+                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b'),
+                  prior(exponential(1), class = 'sd', dpar = 'hu'),
+                  prior(exponential(1), class = 'sd'),
+                  prior(student_t(3, 2, 0.5), class = "lscale", coef = "gpx_kmy_km"), 
+                  prior(exponential(1), class = "sdgp", coef = "gpx_kmy_km")), sample_prior = TRUE, control = list(adapt_delta = 0.95))
+abpv.h <- brm(bf(ABPV.abs ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F),
+                 hu ~ abpv.bl.f.s + Morisita.bl.s + Connectance.s + total_bee_dens.s + Year + gp(x_km, y_km, scale = F)), family = hurdle_lognormal(), data = data.hb, prior = 
+                c(prior(normal(0,2), class = 'b', dpar = 'hu'),
+                  prior(normal(0,5), class = 'b'),
+                  prior(student_t(3, 2, 0.5), class = "lscale", coef = "gpx_kmy_km"), 
+                  prior(exponential(1), class = "sdgp", coef = "gpx_kmy_km")), sample_prior = TRUE)
+
+WB_models_combined_raw_gp <- list(dwvb.b = dwvb.b, dwvb.w = dwvb.w, 
+                           bqcv.b = bqcv.b, bqcv.w = bqcv.w, 
+                           abpv.b = abpv.b, abpv.w = abpv.w, abpv.h = abpv.h)
+
+save(WB_models_combined_raw_gp, file = paste0('Data/Results/',date,'_models_combined_raw_gp.RData'))
+
+
 
 ######################
 #### MODEL CHECKS ####

@@ -186,6 +186,24 @@ t11 <- lapply(site_models_500, custom_summary) %>% bind_rows(.id = 'mod') %>%
 
 # write.csv(t11, file = paste0('Data/Results/', date, '_t11.csv'), row.names = F)
 
+
+# Table S12
+
+t12 <- lapply(WB_models_combined_raw_noimputedint, custom_summary) %>% bind_rows(.id = 'id') 
+
+t12 <- t12 %>% mutate(term = ifelse(grepl('hu_', Predictor), 'Probability of presence', 'Viral load')) %>% 
+  mutate(Predictor = sub('hu_', '', Predictor), Bee_group = ifelse(grepl('.h$', id), 'Honey bee', 'Bumble bee')) %>% 
+  mutate(Bee_group = ifelse(grepl('(.w)$', id), 'Other wild bee', Bee_group)) %>% rename(Virus = Response) %>%
+  mutate(Predictor = recode_factor(as.factor(Predictor), 'dwvb.f.s' = 'Viral exposure', 'bqcv.f.s' = 'Viral exposure','bqcv.f.s:Morisita.hb.s' = 'Viral exposure : HB resource overlap', 'abpv.bl.f.s' = 'Viral exposure', 
+                                   'abpv.bl.f.s:Morisita.bl.s' = 'Viral exposure : BL resource overlap','Bee_rich' = 'Bee richness', 'Year2022' = 'Year 2022', 'Morisita.hb.s' = 'HB resource overlap', 'Morisita.bl.s' = 'BL resource overlap',
+                                   'SpeciesBombuspascuorum' = 'B. pascuorum', 'SpeciesBombusterrestris' = 'B. terrestris', "Connectance.s" = "Connectance", "total_bee_dens.s" = "Total bee density",
+                                   "sum_nodes" = "Sum of nodes"),
+         Virus = recode_factor(as.factor(Virus), 'DWVBabs' = 'DWV-B', 'BQCVabs' = 'BQCV', 'ABPVabs' = 'ABPV', 'SBVabs' = 'SBV')) %>% select(-id) %>% 
+  mutate(Virus = factor(Virus, levels = c('DWV-B', 'BQCV', 'ABPV', 'SBV')), Bee_group = factor(Bee_group, levels = c('Honey bee', 'Bumble bee', 'Other wild bee')),
+         Predictor = factor(Predictor, levels = c('Intercept', 'Viral exposure : HB resource overlap', 'Viral exposure : BL resource overlap', 'Viral exposure', 'HB resource overlap', 'BL resource overlap', 'Total bee density','Connectance','Bee richness', 
+                                                  'Flower cover', "Sum of nodes",'Year 2022', 'B. pascuorum', 'B. terrestris'))) %>%
+  relocate(Virus, Bee_group, term, Predictor) %>% arrange(Virus, Bee_group, term, Predictor)
+
 # combining tables
 
 tables_list <- list(
@@ -199,8 +217,9 @@ tables_list <- list(
   "7. Prevalence simulation" = t7,
   "8. Bayes factor" = t8,
   "9. Hurdle models" = t9,
-  "10. Sensitivity hurdle" = t10,
-  "11. Landscape models" = t11
+  "10. Sensitivity hurdle size" = t10,
+  "11. Landscape models" = t11,
+  "12. Sensitivity hurdle overlap" = t12
 )
 
 write_xlsx(tables_list, file = paste0("Data/Results/", date, "_supplementary_tables.xlsx"))
