@@ -327,7 +327,7 @@ r0.sim.prev.bqcv <- r0.results.long$bqcv %>%
 
 
 r0.abpv <- r0.results.long$abpv %>% 
-  #removing duplicated values for R0, filtering by either main host will bear the same result
+  #removing duplicated values for R0, filtering by either main host will give the same result
   filter(main.host == "Bombus lapidarius") %>% group_by(Species) %>% 
   summarise(r0_mean = mean(r0), r0_sd = sd(r0), n_networks = n())
 

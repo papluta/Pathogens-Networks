@@ -1,10 +1,10 @@
 source('01_custom_functions.R')
-source('05_main_data_file.R')
+source('05_main_data_file.R') # reruns also previous scripts (01 - 05)
 
 
 ### MODELS
 unloadNamespace("brms") # unloading brms to unload bridgesampling
-unloadNamespace("bridgesampling") # causes hurdle models to error out
+unloadNamespace("bridgesampling") # unloading because it causes hurdle models to error out
 library(brms)
 library(tidybayes)
 library(rstan)

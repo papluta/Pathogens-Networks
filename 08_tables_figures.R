@@ -1,11 +1,3 @@
-## preload data if available - run the scripts if not
-# load('Data/Results/251126_R0_results.RData')
-# load('Data/Results/251126_r0_sensitivity.RData')
-# load('Data/Results/251126_bayes_factor.RData')
-# load('Data/Results/251201_comm_models.RData')
-# load("Data/Results/251201_models_combined_raw.RData")
-# load("Data/Results/251201_models_combined_raw_size.RData")
-
 source('05_main_data_file.R') 
 
 library(openxlsx2)
